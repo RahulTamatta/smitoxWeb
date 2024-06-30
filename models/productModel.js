@@ -34,6 +34,53 @@ const productSchema = new mongoose.Schema(
     shipping: {
       type: Boolean,
     },
+    hsnCode: {
+      type: String,
+    },
+    unit: {
+      type: String,
+    },
+    purchaseRate: {
+      type: Number,
+    },
+    mrp: {
+      type: Number,
+    },
+    perPiecePrice: {
+      type: Number,
+    },
+    setPrice: {
+      type: Number,
+    },
+    weight: {
+      type: Number,
+    },
+    allowCOD: {
+      type: Boolean,
+    },
+    returnProduct: {
+      type: Boolean,
+    },
+    flexibleQuantity: [
+      {
+        minimum: {
+          type: Number,
+        },
+        maximum: {
+          type: Number,
+        },
+      },
+    ],
+    discounts: [
+      {
+        discount_mrp: {
+          type: Number,
+        },
+        selling_price_set: {
+          type: Number,
+        },
+      },
+    ],
   },
   { timestamps: true }
 );
