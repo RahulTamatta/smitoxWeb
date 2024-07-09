@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
 
-const productSchema = new mongoose.Schema(
+const { Schema } = mongoose;
+
+const productSchema = new Schema(
   {
     name: {
       type: String,
@@ -19,7 +21,7 @@ const productSchema = new mongoose.Schema(
       required: true,
     },
     category: {
-      type: mongoose.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "Category",
       required: true,
     },
@@ -27,18 +29,26 @@ const productSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    stock: {
+      type: Number,
+     
+    },
     photo: {
-      data: Buffer,
-      contentType: String,
+      data: Buffer, // This assumes you store photo as Buffer (optional)
+      contentType: String, // This assumes you store content type of photo (optional)
     },
     shipping: {
       type: Boolean,
     },
-    hsnCode: {
+  hsn: {
       type: String,
     },
     unit: {
       type: String,
+    },
+    additionalUnit: {
+      type: mongoose.Schema.Types.Mixed,
+      default: ""
     },
     purchaseRate: {
       type: Number,
@@ -49,11 +59,17 @@ const productSchema = new mongoose.Schema(
     perPiecePrice: {
       type: Number,
     },
-    setPrice: {
+    totalsetPrice: {
       type: Number,
     },
     weight: {
       type: Number,
+    },
+    unitSet: {
+      type: Number,
+    },
+    gst: {
+      type: String,
     },
     allowCOD: {
       type: Boolean,
@@ -61,28 +77,15 @@ const productSchema = new mongoose.Schema(
     returnProduct: {
       type: Boolean,
     },
-    flexibleQuantity: [
-      {
-        minimum: {
-          type: Number,
-        },
-        maximum: {
-          type: Number,
-        },
-      },
-    ],
-    discounts: [
-      {
-        discount_mrp: {
-          type: Number,
-        },
-        selling_price_set: {
-          type: Number,
-        },
-      },
-    ],
+  bulkProducts: [{
+    minimum: Number,
+    maximum: Number,
+    discount_mrp: Number,
+    selling_price_set: Number
+  }]
+  
   },
   { timestamps: true }
 );
 
-export default mongoose.model("Products", productSchema);
+export default mongoose.model("Product", productSchema);

@@ -5,10 +5,22 @@ const orderSchema = new mongoose.Schema(
     products: [
       {
         type: mongoose.ObjectId,
-        ref: "Products",
+        ref: "Product",
       },
     ],
-    payment: {},
+    payment: {
+      paymentMethod: {
+        type: String,
+        enum: ["COD", "Braintree"],
+        required: true,
+      },
+      transactionId: String,
+      status: {
+        type: String,
+        enum: ["Pending", "Completed"],
+        default: "Pending",
+      },
+    },
     buyer: {
       type: mongoose.ObjectId,
       ref: "users",
@@ -16,7 +28,7 @@ const orderSchema = new mongoose.Schema(
     status: {
       type: String,
       default: "Not Process",
-      enum: ["Not Process", "Processing", "Shipped", "deliverd", "cancel"],
+      enum: ["Not Process", "Processing", "Shipped", "Delivered", "Cancelled"],
     },
   },
   { timestamps: true }

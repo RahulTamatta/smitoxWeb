@@ -217,19 +217,45 @@ export const getOrdersController = async (req, res) => {
   }
 };
 //orders
+// export const getAllOrdersController = async (req, res) => {
+//   try {
+//     const orders = await orderModel
+//       .find({})
+//       .populate("products", "-photo")
+//       .populate("buyer", "name")
+//       .sort({ createdAt: "-1" });
+//     res.json(orders);
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).send({
+//       success: false,
+//       message: "Error WHile Geting Orders",
+//       error,
+//     });
+//   }
+// };
+
 export const getAllOrdersController = async (req, res) => {
   try {
+    const { status } = req.query;
+    let query = {};
+    
+    if (status && status !== 'all-orders') {
+      query.status = status;
+    }
+
     const orders = await orderModel
-      .find({})
+      .find(query)
       .populate("products", "-photo")
       .populate("buyer", "name")
       .sort({ createdAt: "-1" });
+
     res.json(orders);
   } catch (error) {
     console.log(error);
     res.status(500).send({
       success: false,
-      message: "Error WHile Geting Orders",
+      message: "Error While Getting Orders",
       error,
     });
   }
