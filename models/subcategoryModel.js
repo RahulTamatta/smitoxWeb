@@ -10,9 +10,6 @@ const subCategorySchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  photo: {
-    type: String,  // This will store the base64 string
-  },
   slug: {
     type: String,
     lowercase: true,
