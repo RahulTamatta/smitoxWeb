@@ -1,15 +1,25 @@
 {
   "files": {
-    "main.css": "/static/css/main.cc040ca8.css",
-    "main.js": "/static/js/main.673ab9c1.js",
-    "static/js/453.419a5d54.chunk.js": "/static/js/453.419a5d54.chunk.js",
+    "main.css": "/static/css/main.945c057e.css",
+    "main.js": "/static/js/main.b00b018e.js",
+    "static/js/453.258b012d.chunk.js": "/static/js/453.258b012d.chunk.js",
+    "static/media/kitchen-sale.jpg": "/static/media/kitchen-sale.058c7dbd12f5f0a0be9e.jpg",
+    "static/media/fashionsale.jpg": "/static/media/fashionsale.3071fadf18ef75cdee1c.jpg",
+    "static/media/gadget-sale.jpg": "/static/media/gadget-sale.ec893927252d46afc4d9.jpg",
+    "static/media/fashion-sale.webp": "/static/media/fashion-sale.b2e8f1ee6adf89956cbb.webp",
+    "static/media/poco-m4-pro.webp": "/static/media/poco-m4-pro.48599deb73643813688f.webp",
+    "static/media/oppo-reno7.webp": "/static/media/oppo-reno7.dedadaebb21cf2bb2137.webp",
+    "static/media/slick.svg": "/static/media/slick.2630a3e3eab21c607e21.svg",
+    "static/media/slick.eot": "/static/media/slick.a4e97f5a2a64f0ab1323.eot",
+    "static/media/slick.ttf": "/static/media/slick.c94f7671dcc99dce43e2.ttf",
+    "static/media/slick.woff": "/static/media/slick.295183786cd8a1389865.woff",
     "index.html": "/index.html",
-    "main.cc040ca8.css.map": "/static/css/main.cc040ca8.css.map",
-    "main.673ab9c1.js.map": "/static/js/main.673ab9c1.js.map",
-    "453.419a5d54.chunk.js.map": "/static/js/453.419a5d54.chunk.js.map"
+    "main.945c057e.css.map": "/static/css/main.945c057e.css.map",
+    "main.b00b018e.js.map": "/static/js/main.b00b018e.js.map",
+    "453.258b012d.chunk.js.map": "/static/js/453.258b012d.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.cc040ca8.css",
-    "static/js/main.673ab9c1.js"
+    "static/css/main.945c057e.css",
+    "static/js/main.b00b018e.js"
   ]
 }

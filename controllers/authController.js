@@ -1,5 +1,6 @@
 import userModel from "../models/userModel.js";
 import orderModel from "../models/orderModel.js";
+import productModel from "../models/productModel.js";
 
 import { comparePassword, hashPassword } from "./../helpers/authHelper.js";
 import JWT from "jsonwebtoken";
@@ -216,30 +217,101 @@ export const getOrdersController = async (req, res) => {
     });
   }
 };
-//orders
+
 export const getAllOrdersController = async (req, res) => {
   try {
+    const { status } = req.query;
+    let query = {};
+    
+    if (status && status !== 'all-orders') {
+      query.status = status;
+    }
+
     const orders = await orderModel
-      .find({})
+      .find(query)
       .populate("products", "-photo")
       .populate("buyer", "name")
       .sort({ createdAt: "-1" });
+
     res.json(orders);
   } catch (error) {
     console.log(error);
     res.status(500).send({
       success: false,
-      message: "Error WHile Geting Orders",
+      message: "Error While Getting Orders",
       error,
     });
   }
 };
 
-//order status
+export const addProductToOrderController = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { productId, quantity, price } = req.body;
+
+    console.log(`Received request to add product to order. orderModel ID: ${orderId}, Product ID: ${productId}, Quantity: ${quantity}, Price: ${price}`);
+
+    // Find the order by ID
+    const order = await orderModel.findById(orderId);
+
+    if (!order) {
+      console.log(`orderModel with ID ${orderId} not found.`);
+      return res.status(404).send({
+        success: false,
+        message: "orderModel not found",
+      });
+    }
+
+    // Find the product by ID
+    const product = await productModel.findById(productId);
+
+    if (!product) {
+      console.log(`Product with ID ${productId} not found.`);
+      return res.status(404).send({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    console.log(`Found order: ${JSON.stringify(order)}`);
+    console.log(`Found product: ${JSON.stringify(product)}`);
+
+    // Add the new product to the order
+    const newProduct = {
+      _id: productId,
+      quantity: quantity || 1,
+      price: price || product.price, // Use the price from the request or the product's price
+    };
+
+    console.log(`Adding product to order: ${JSON.stringify(newProduct)}`);
+    order.products.push(newProduct);
+
+    // Save the updated order
+    await order.save();
+
+    console.log(`orderModel updated successfully: ${JSON.stringify(order)}`);
+
+    res.status(200).send({
+      success: true,
+      message: "Product added to order successfully",
+      order,
+    });
+  } catch (error) {
+    console.error('Error while adding product to order:', error);
+    res.status(500).send({
+      success: false,
+      message: "Error while adding product to order",
+      error,
+    });
+  }
+};
+
+//order status'
 export const orderStatusController = async (req, res) => {
   try {
     const { orderId } = req.params;
     const { status } = req.body;
+    // console.log("Oder and status",{orderId,status});
     const orders = await orderModel.findByIdAndUpdate(
       orderId,
       { status },
@@ -250,8 +322,87 @@ export const orderStatusController = async (req, res) => {
     console.log(error);
     res.status(500).send({
       success: false,
-      message: "Error While Updateing Order",
+      message: "Error While Updateing orderModel",
       error,
     });
   }
 };
+
+export const updateOrderController = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { deliveryCharges, codCharges, discount } = req.body;
+
+    // Debugging: Log the received parameters
+    console.log("Received orderId:", orderId);
+    console.log("Received body:", { deliveryCharges, codCharges, discount });
+
+    // Find the order
+    const order = await orderModel.findById(orderId).populate("products");
+
+    if (!order) {
+      console.log("orderModel not found for orderId:", orderId);  // Debugging
+      return res.status(404).send({
+        success: false,
+        message: "orderModel not found",
+      });
+    }
+
+    // Debugging: Log the retrieved order
+    console.log("Retrieved order:", order);
+
+    // Calculate the total amount of products
+    const totalProductAmount = order.products.reduce((total, product) => {
+      const productTotal = product.price * product.quantity;
+      console.log(`Product ID: ${product._id}, Price: ${product.price}, Quantity: ${product.quantity}, Total: ${productTotal}`); // Debugging
+      return total + productTotal;
+    }, 0);
+
+    // Debugging: Log the calculated total product amount
+    console.log("Total product amount:", totalProductAmount);
+
+    // Update the order with new charges and discount
+    order.deliveryCharges = deliveryCharges || 0;
+    order.codCharges = codCharges || 0;
+    order.discount = discount || 0;
+
+    // Debugging: Log updated charges and discount
+    console.log("Updated deliveryCharges:", order.deliveryCharges);
+    console.log("Updated codCharges:", order.codCharges);
+    console.log("Updated discount:", order.discount);
+
+    // Calculate the new total amount
+    const newTotalAmount = totalProductAmount + order.deliveryCharges + order.codCharges - order.discount;
+
+    // Debugging: Log the new total amount
+    console.log("New total amount:", newTotalAmount);
+
+    // Calculate the amount pending
+    const amountPaid = order.payment.status === "Completed" ? order.payment.amount : 0;
+    order.amountPending = newTotalAmount - amountPaid;
+
+    // Debugging: Log the amount paid and amount pending
+    console.log("Amount paid:", amountPaid);
+    console.log("Amount pending:", order.amountPending);
+
+    // Save the updated order
+    await order.save();
+
+    // Debugging: Log the updated order after save
+    console.log("Updated order saved:", order);
+
+    res.status(200).send({
+      success: true,
+      message: "orderModel updated successfully",
+      order,
+    });
+  } catch (error) {
+    console.log("Error in updating order:", error); // Debugging
+    res.status(500).send({
+      success: false,
+      message: "Error in updating order",
+      error,
+    });
+  }
+};
+

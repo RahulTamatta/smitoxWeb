@@ -5,8 +5,9 @@ import {
   testController,
   forgotPasswordController,
   updateProfileController,
+  updateOrderController,
   getOrdersController,
-  getAllOrdersController,
+  getAllOrdersController,addProductToOrderController,
   orderStatusController,
 } from "../controllers/authController.js";
 import { isAdmin, requireSignIn } from "../middlewares/authMiddleware.js";
@@ -44,6 +45,7 @@ router.get("/orders", requireSignIn, getOrdersController);
 
 //all orders
 router.get("/all-orders", requireSignIn, isAdmin, getAllOrdersController);
+router.post("/order/:orderId/add-product", requireSignIn, isAdmin, addProductToOrderController);
 
 // order status update
 router.put(
@@ -52,5 +54,8 @@ router.put(
   isAdmin,
   orderStatusController
 );
+
+router.put("/order/:orderId",   requireSignIn,
+isAdmin,updateOrderController);
 
 export default router;

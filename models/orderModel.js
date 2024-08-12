@@ -5,18 +5,50 @@ const orderSchema = new mongoose.Schema(
     products: [
       {
         type: mongoose.ObjectId,
-        ref: "Products",
+        ref: "Product",
       },
     ],
-    payment: {},
+    payment: {
+      paymentMethod: {
+        type: String,
+        enum: ["COD", "Braintree"],
+        required: true,
+      },
+      transactionId: String,
+      status: {
+        type: String,
+        enum: ["Pending", "Completed"],
+        default: "Pending",
+      },
+      amount: {
+        type: Number,
+        default: 0,
+      },
+    },
     buyer: {
       type: mongoose.ObjectId,
-      ref: "users",
+      ref: "User",
     },
     status: {
       type: String,
-      default: "Not Process",
-      enum: ["Not Process", "Processing", "Shipped", "deliverd", "cancel"],
+      default: "Pending",
+      enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"],
+    },
+    deliveryCharges: {
+      type: Number,
+      default: 0,
+    },
+    codCharges: {
+      type: Number,
+      default: 0,
+    },
+    discount: {
+      type: Number,
+      default: 0,
+    },
+    amountPending: {
+      type: Number,
+      default: 0,
     },
   },
   { timestamps: true }
