@@ -22,10 +22,10 @@ const AdminMenu = () => {
               <Dropdown.Item as={NavLink} to="/dashboard/admin/create-subcategory">Sub Category</Dropdown.Item>
               <Dropdown.Item as={NavLink} to="/dashboard/admin/brand">Brand</Dropdown.Item>
               <Dropdown.Item as={NavLink} to="/dashboard/admin/create-banner">Banner</Dropdown.Item>
-              <Dropdown.Item as={NavLink} to="/dashboard/admin/pincode">Pincode</Dropdown.Item>
+              <Dropdown.Item as={NavLink} to="/dashboard/admin/pincodes">Pincode</Dropdown.Item>
               <Dropdown.Item as={NavLink} to="/dashboard/admin/offer">Offers</Dropdown.Item>
               <Dropdown.Item as={NavLink} to="/dashboard/admin/units">Units</Dropdown.Item>
-              <Dropdown.Item as={NavLink} to="/dashboard/admin/homepage-setting">App Home</Dropdown.Item>
+              <Dropdown.Item as={NavLink} to="/dashboard/admin/productforyou">App Home</Dropdown.Item>
             </Dropdown.Menu>
           </Dropdown>
 

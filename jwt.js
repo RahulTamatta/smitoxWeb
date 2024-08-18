@@ -33,7 +33,3 @@ const generateToken = (userData) => {
 module.exports = {jwtAuthMiddleware, generateToken};
 
 
-PORT=8080
-DEV_MODE=development
-MONGO_URL='mongodb+srv://smitoxJSbWYZGtLBJGWxjO@smitox.rlcilry.mongodb.net/?retryWrites=true&w=majority&appName=smitox'
-JWT_SECRET=sdrbgkyulu

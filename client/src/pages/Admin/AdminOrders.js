@@ -582,6 +582,23 @@ const AdminOrders = () => {
       </div>
     )}
     
+
+
+    {selectedOrder && selectedOrder.status === "Confirmed" && (
+      <div>
+        <Button
+          variant="success"
+          onClick={() => handleStatusChange(selectedOrder._id, "Accepted")}
+        >
+          Accept
+        </Button>
+     
+      </div>
+    )}
+    
+
+
+
     {/* If the order is Dispatched */}
     {selectedOrder && selectedOrder.status === "Dispatched" && (
       <div>

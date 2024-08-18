@@ -10,7 +10,6 @@ import "../styles/Homepage.css";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
-import Banner from "./Banner/Banner";
 import DealSlider from './DealSlider/DealSlider'
 import ProductSlider from './DealSlider/Product'
 import '../../src/homepage.css';
@@ -52,7 +51,6 @@ const HomePage = () => {
     }
   };
 
-  // Get all categories
   const getAllCategory = async () => {
     try {
       const { data } = await axios.get("/api/v1/category/get-category");
@@ -64,7 +62,6 @@ const HomePage = () => {
     }
   };
 
-  // Get products
   const getAllProducts = async () => {
     try {
       setLoading(true);
@@ -77,7 +74,6 @@ const HomePage = () => {
     }
   };
 
-  // Get total count
   const getTotal = async () => {
     try {
       const { data } = await axios.get("/api/v1/product/product-count");
@@ -92,7 +88,6 @@ const HomePage = () => {
     loadMore();
   }, [page]);
 
-  // Load more
   const loadMore = async () => {
     try {
       setLoading(true);
@@ -105,7 +100,6 @@ const HomePage = () => {
     }
   };
 
-  // Filter by category
   const handleFilter = (value, id) => {
     let all = [...checked];
     if (value) {
@@ -124,7 +118,6 @@ const HomePage = () => {
     if (checked.length || radio.length) filterProduct();
   }, [checked, radio]);
 
-  // Get filtered product
   const filterProduct = async () => {
     try {
       const { data } = await axios.post("/api/v1/product/product-filters", {
@@ -137,7 +130,33 @@ const HomePage = () => {
     }
   };
 
-  // Settings for the slick slider
+  const getBanners = async () => {
+    try {
+      const { data } = await axios.get("/api/v1/bannerManagement/get-banners");
+      if (data?.success) {
+        setBanners(data.banners);
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to fetch banners");
+    }
+  };
+
+  
+const handleBannerClick = (banner) => {
+  console.log("Clicked banner", banner.categoryId, banner.subcategoryId);
+  
+  if (banner.categoryId) {
+    navigate(`/category/${banner.categoryId.name}`, {
+      state: { 
+        selectedSubcategory: banner.subcategoryId.slug || null,
+        fromBanner: true
+      }
+    });
+  } else {
+    toast.error("Banner is not linked to a category");
+  }
+};
   const settings = {
     dots: false,
     infinite: false,
@@ -169,18 +188,6 @@ const HomePage = () => {
     ]
   };
 
-  const getBanners = async () => {
-    try {
-      const { data } = await axios.get("/api/v1/banner/get-banners");
-      if (data?.success) {
-        setBanners(data.banners);
-      }
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  // Settings for the banner slider
   const bannerSettings = {
     dots: true,
     infinite: true,
@@ -220,10 +227,10 @@ const HomePage = () => {
       <div className="banner-container">
         <Slider {...bannerSettings}>
           {banners.map((banner) => (
-            <div key={banner._id}>
+            <div key={banner._id} onClick={() => handleBannerClick(banner)} style={{cursor: 'pointer'}}>
               <img
-                src={`/api/v1/banner/banner-image/${banner._id}`}
-                alt={banner.name}
+                src={`/api/v1/bannerManagement/single-banner/${banner._id}`}
+                alt={banner.bannerName}
                 className="banner-image"
               />
             </div>

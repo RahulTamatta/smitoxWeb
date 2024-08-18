@@ -27,14 +27,17 @@ import Categories from "./pages/Categories";
 import CategoryProduct from "./pages/CategoryProduct";
 import CartPage from "./pages/CartPage";
 import AdminOrders from "./pages/Admin/AdminOrders";
+import PincodeList from "./pages/Admin/PinCode.js";
 import Terms from "./pages/TermsofUse";
 import BannerManagement from "./pages/Admin/bannerManagement";
+import ProductForYou from "./pages/Admin/ProductForYou.js";
+
 function App() {
   return (
     <>
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/product/:slug" element={<ProductDetails />} />
+       <Route path="/product/:slug" element={<ProductDetails />} />
         <Route path="/categories" element={<Categories />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/category/:slug" element={<CategoryProduct />} />
@@ -54,9 +57,14 @@ function App() {
           <Route path="admin/product/:slug" element={<UpdateProduct />} />
           <Route path="admin/products" element={<Products />} />
           <Route path="admin/users" element={<Users />} />
+
+          
           <Route path="admin/UsersLists" element={<UsersLists />} />
           <Route path="admin/orders" element={<AdminOrders />} />
+          <Route path="admin/pincodes" element={<PincodeList />} />
+          <Route path="admin/productforyou" element={<ProductForYou />} />
         </Route>
+      
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPasssword />} />
         <Route path="/login" element={<Login />} />

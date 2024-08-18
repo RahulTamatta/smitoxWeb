@@ -1,7 +1,7 @@
 import express from "express";
 import { isAdmin, requireSignIn } from "../middlewares/authMiddleware.js";
 import {
-  createBannerController,
+  createBannerController,getBannerProductsController,
   getBannersController,updateBannerController,
   bannerImageController,deleteBannerController
  
@@ -9,6 +9,10 @@ import {
 import formidable from "express-formidable";
 
 const router = express.Router();
+
+// In your productRoutes.js or similar file
+
+
 
 // Create banner
 router.post(
@@ -42,5 +46,6 @@ router.delete(
   isAdmin,
   deleteBannerController
 );
+router.get("/banner-product/:categoryId/:subcategoryId", getBannerProductsController);
 
 export default router;

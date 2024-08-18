@@ -1,287 +1,264 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Modal, Button, Form, Table, Spinner, Alert } from 'react-bootstrap';
+import { PlusCircle, Pencil, Trash } from 'lucide-react';
 import { toast } from 'react-toastify';
-import Layout from "../../components/Layout/Layout";
-import AdminMenu from "../../components/Layout/AdminMenu";
 
 const BannerManagement = () => {
-  const [bannerName, setBannerName] = useState('');
-  const [categoryId, setCategoryId] = useState('');
-  const [subcategoryId, setSubcategoryId] = useState('');
-  const [image, setImage] = useState(null);
-
+  const [banners, setBanners] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [currentBanner, setCurrentBanner] = useState(null);
+  const [formData, setFormData] = useState({
+    bannerName: '',
+    categoryId: '',
+    subcategoryId: '',
+    image: null
+  });
   const [loading, setLoading] = useState(true);
-  const [adBannerName, setAdBannerName] = useState('');
-  const [adBannerImage, setAdBannerImage] = useState(null);
-  const [adBannerLink, setAdBannerLink] = useState('');
-  const [adBannerPosition, setAdBannerPosition] = useState('');
-
-  const handleAdBannerSubmit = async (e) => {
-    e.preventDefault();
-  
-    try {
-      const formData = new FormData();
-      formData.append('adBannerName', adBannerName);
-      formData.append('adBannerLink', adBannerLink);
-      formData.append('adBannerPosition', adBannerPosition);
-      if (adBannerImage) {
-        formData.append('adBannerImage', adBannerImage);
-      }
-  
-      const config = {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      };
-  
-      const response = await axios.post("/api/v1/adsbanner/create-adsbanner", formData, config);
-  
-      console.log("Ad Banner API Response:", response.data);
-  
-      if (response.data.success) {
-        toast.success("Ad banner created successfully");
-        // Reset form fields
-        setAdBannerName('');
-        setAdBannerImage(null);
-        setAdBannerLink('');
-        setAdBannerPosition('');
-      } else {
-        toast.error(response.data.message || "Failed to create ad banner");
-      }
-    } catch (error) {
-      console.error("Error creating ad banner:", error.response?.data || error.message);
-      toast.error("Failed to create ad banner: " + (error.response?.data?.message || error.message));
-    }
-  };
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    console.log("Fetching categories...");
-    getAllCategories();
+    fetchBanners();
+    fetchCategories();
+    fetchSubcategories();
   }, []);
 
-  const getAllCategories = async () => {
+  const fetchBanners = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get('/api/v1/bannerManagement/get-banners');
+      setBanners(response.data.banners || []);
+    } catch (error) {
+      console.error('Error fetching banners:', error);
+      setError('Failed to fetch banners');
+      setBanners([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
     try {
       const { data } = await axios.get("/api/v1/category/get-category");
-      console.log("Categories API Response:", data);
-
       if (data?.success) {
-        setCategories(data.category);
+        setCategories(data.category || []);
+      } else {
+        setCategories([]);
       }
-      setLoading(false);
     } catch (error) {
       console.error("Error fetching categories:", error);
-      toast.error("Failed to fetch categories");
-      setLoading(false);
+      toast.error("Something went wrong in getting categories");
+      setCategories([]);
     }
   };
 
-  const getSubcategoriesForCategory = async (categoryId) => {
+  const fetchSubcategories = async () => {
     try {
-
-      console.log(`Fetching subcategories for categoryId: ${categoryId}`);
-      const { data } = await axios.get(`/api/v1/subcategory/singleSubcategory/${categoryId}`);
-      console.log("Subcategories API Response:", data);
-
+      const { data } = await axios.get("/api/v1/subcategory/get-subcategories");
       if (data?.success) {
         setSubcategories(data.subcategories || []);
+      } else {
+        setSubcategories([]);
       }
     } catch (error) {
-      console.error("Error fetching subcategories:", error);
-      toast.error("Failed to fetch subcategories");
+      console.log(error);
+      toast.error("Something went wrong in getting subcategories");
+      setSubcategories([]);
     }
   };
 
-  const handleCategoryChange = (e) => {
-    const selectedCategoryId = e.target.value;
-    setCategoryId(selectedCategoryId);
-    setSubcategoryId('');
-    console.log(`Category changed to: ${selectedCategoryId}`);
-    getSubcategoriesForCategory(selectedCategoryId);
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+
+    if (name === 'categoryId') {
+      const filteredSubcategories = subcategories.filter(
+        (subcat) => subcat.category === value
+      );
+      setSubcategories(filteredSubcategories);
+      setFormData(prev => ({ ...prev, subcategoryId: '' }));
+    }
+  };
+
+  const handleImageChange = (e) => {
+    setFormData({ ...formData, image: e.target.files[0] });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    console.log("Banner Form Data:", { bannerName, categoryId, subcategoryId, image });
+    const data = new FormData();
+    for (const key in formData) {
+      data.append(key, formData[key]);
+    }
 
     try {
-      const formData = new FormData();
-      formData.append('banner_name', bannerName);
-      formData.append('category_id', categoryId);
-      formData.append('subcategory_id', subcategoryId);
-      if (image) {
-        formData.append('image', image);
-      }
-
-      const config = {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      };
-
-      const response = await axios.post("/api/v1/bannerManagement/create-banner", formData, config);
-
-      console.log("Banner API Response:", response.data);
-
-      if (response.data.success) {
-        toast.success("Banner created successfully");
-        // Reset form fields
-        setBannerName('');
-        setCategoryId('');
-        setSubcategoryId('');
-        setImage(null);
+      if (currentBanner) {
+        await axios.put(`/api/v1/bannerManagement/update-banner/${currentBanner._id}`, data);
+        toast.success('Banner updated successfully');
       } else {
-        toast.error(response.data.message);
+        await axios.post('/api/v1/bannerManagement/create-banner', data);
+        toast.success('Banner created successfully');
       }
+      fetchBanners();
+      handleCloseModal();
     } catch (error) {
-      console.error("Error creating banner:", error);
-      toast.error("Failed to create banner: " + (error.response?.data?.message || error.message));
+      console.error('Error submitting banner:', error);
+      toast.error('Failed to submit banner');
     }
   };
 
-  if (loading) {
-    return <div className="text-center mt-5">Loading...</div>;
-  }
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`/api/v1/bannerManagement/delete-banner/${id}`);
+      fetchBanners();
+      toast.success('Banner deleted successfully');
+    } catch (error) {
+      console.error('Error deleting banner:', error);
+      toast.error('Failed to delete banner');
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowAddModal(false);
+    setShowEditModal(false);
+    setCurrentBanner(null);
+    setFormData({ bannerName: '', categoryId: '', subcategoryId: '', image: null });
+  };
+
+  const handleEdit = (banner) => {
+    setCurrentBanner(banner);
+    setFormData({
+      bannerName: banner.bannerName,
+      categoryId: banner.categoryId,
+      subcategoryId: banner.subcategoryId,
+      image: null
+    });
+    setShowEditModal(true);
+  };
 
   return (
-    <Layout title="Dashboard - Create Banner">
-      <div className="container-fluid m-3 p-3">
-        <div className="row">
-          <div className="col-md-3">
-            <AdminMenu />
-          </div>
-          <div className="col-md-9">
-            <h2 className="text-center mb-4">Banner Management</h2>
-            <form onSubmit={handleSubmit} className="p-4 bg-white rounded shadow-sm">
-              <div className="mb-3">
-                <label htmlFor="banner_name" className="form-label">Banner Name</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  id="banner_name"
-                  value={bannerName}
-                  onChange={(e) => setBannerName(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="mb-3">
-                <label htmlFor="category_id" className="form-label">Category</label>
-                <select
-                  className="form-select"
-                  id="category_id"
-                  value={categoryId}
-                  onChange={handleCategoryChange}
-                  required
-                >
-                  <option value="">Select a category</option>
-                  {categories.map((category) => (
-                    <option key={category._id} value={category._id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="mb-3">
-                <label htmlFor="subcategory_id" className="form-label">Subcategory</label>
-                <select
-                  className="form-select"
-                  id="subcategory_id"
-                  value={subcategoryId}
-                  onChange={(e) => setSubcategoryId(e.target.value)}
-                  required
-                  disabled={!categoryId}
-                >
-                  <option value="">Select a subcategory</option>
-                  {subcategories.map((subcategory) => (
-                    <option key={subcategory._id} value={subcategory._id}>
-                      {subcategory.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="mb-3">
-                <label htmlFor="image" className="form-label">Banner Image</label>
-                <input
-                  type="file"
-                  className="form-control"
-                  id="image"
-                  onChange={(e) => setImage(e.target.files[0])}
-                  accept="image/*"
-                />
-              </div>
-
-              <button type="submit" className="btn btn-primary">
-                Create Banner
-              </button>
-            </form>
-
-            <form onSubmit={handleAdBannerSubmit} className="p-4 bg-white rounded shadow-sm mt-4">
-              <h3 className="mb-3">Create Ad Banner</h3>
-              <div className="mb-3">
-                <label htmlFor="ad_banner_name" className="form-label">Ad Banner Name</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  id="ad_banner_name"
-                  value={adBannerName}
-                  onChange={(e) => setAdBannerName(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="mb-3">
-                <label htmlFor="ad_banner_image" className="form-label">Ad Banner Image</label>
-                <input
-                  type="file"
-                  className="form-control"
-                  id="ad_banner_image"
-                  onChange={(e) => setAdBannerImage(e.target.files[0])}
-                  accept="image/*"
-                  required
-                />
-              </div>
-
-              <div className="mb-3">
-                <label htmlFor="ad_banner_link" className="form-label">Ad Banner Link</label>
-                <input
-                  type="url"
-                  className="form-control"
-                  id="ad_banner_link"
-                  value={adBannerLink}
-                  onChange={(e) => setAdBannerLink(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="mb-3">
-                <label htmlFor="ad_banner_position" className="form-label">Ad Banner Position</label>
-                <select
-                  className="form-select"
-                  id="ad_banner_position"
-                  value={adBannerPosition}
-                  onChange={(e) => setAdBannerPosition(e.target.value)}
-                  required
-                >
-                  <option value="">Select a position</option>
-                  <option value="top">Top</option>
-                  <option value="bottom">Bottom</option>
-                  <option value="sidebar">Sidebar</option>
-                </select>
-              </div>
-
-              <button type="submit" className="btn btn-primary">
-                Create Ad Banner
-              </button>
-            </form>
+    <div className="container-fluid site-width">
+      <div className="row">
+        <div className="col-12 align-self-center">
+          <div className="sub-header mt-3 py-3 align-self-center d-sm-flex w-100 rounded">
+            <div className="w-sm-100 mr-auto"><h4 className="mb-0">Banner List</h4></div>
+            <ol className="breadcrumb bg-transparent align-self-center m-0 p-0">
+              <li className="breadcrumb-item">Master</li>
+              <li className="breadcrumb-item">Banner</li>
+              <li className="breadcrumb-item active"><a href="#">Banner table</a></li>
+            </ol>
           </div>
         </div>
       </div>
-    </Layout>
+
+      <div className="row">
+        <div className="col-12 mt-3">
+          <div className="card">
+            <div className="card-header justify-content-between align-items-center">
+              <h4 className="card-title">
+                <Button variant="danger" onClick={() => setShowAddModal(true)}>
+                  <PlusCircle size={18} className="mr-2" />
+                  Add Banner
+                </Button>
+              </h4>
+            </div>
+            <div className="card-body">
+              {loading ? (
+                <div className="text-center">
+                  <Spinner animation="border" role="status">
+                    <span className="sr-only">Loading...</span>
+                  </Spinner>
+                </div>
+              ) : error ? (
+                <Alert variant="danger">{error}</Alert>
+              ) : banners.length > 0 ? (
+                <div className="table-responsive">
+                  <Table striped bordered hover>
+                    <thead>
+                      <tr>
+                        <th>Sr.No</th>
+                        <th>Banner Name</th>
+                        <th>Category</th>
+                        <th>Subcategory</th>
+                        <th>Image</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {banners.map((banner, index) => (
+                        <tr key={banner._id}>
+                          <td>{index + 1}</td>
+                          <td>{banner.bannerName}</td>
+                          <td>{banner.categoryId?.name}</td>
+                          <td>{banner.subcategoryId?.name}</td>
+                          <td>
+                            <img src={`/api/v1/bannerManagement/single-banner/${banner._id}`} alt={banner.bannerName} width="50" />
+                          </td>
+                          <td>
+                            <Button variant="primary" size="sm" onClick={() => handleEdit(banner)} className="mr-2">
+                              <Pencil size={18} />
+                            </Button>
+                            <Button variant="danger" size="sm" onClick={() => handleDelete(banner._id)}>
+                              <Trash size={18} />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </div>
+              ) : (
+                <Alert variant="info">No banners found.</Alert>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Modal show={showAddModal || showEditModal} onHide={handleCloseModal}>
+        <Modal.Header closeButton>
+          <Modal.Title>{currentBanner ? 'Edit Banner' : 'Add Banner'}</Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handleSubmit}>
+          <Modal.Body>
+            <Form.Group>
+              <Form.Label>Category Name</Form.Label>
+              <Form.Control as="select" name="categoryId" value={formData.categoryId} onChange={handleInputChange} required>
+                <option value="">Select a category</option>
+                {categories.map(category => (
+                  <option key={category._id} value={category._id}>{category.name}</option>
+                ))}
+              </Form.Control>
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>Subcategory Name</Form.Label>
+              <Form.Control as="select" name="subcategoryId" value={formData.subcategoryId} onChange={handleInputChange} required>
+                <option value="">Select a subcategory</option>
+                {subcategories.map(subcategory => (
+                  <option key={subcategory._id} value={subcategory._id}>{subcategory.name}</option>
+                ))}
+              </Form.Control>
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>Banner Name</Form.Label>
+              <Form.Control type="text" name="bannerName" value={formData.bannerName} onChange={handleInputChange} placeholder="Banner Name" required />
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>Image</Form.Label>
+              <Form.Control type="file" name="image" onChange={handleImageChange} accept="image/*" required={!currentBanner} />
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={handleCloseModal}>Close</Button>
+            <Button variant="primary" type="submit">{currentBanner ? 'Update' : 'Add'}</Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+    </div>
   );
 };
 

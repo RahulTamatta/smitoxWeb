@@ -15,6 +15,7 @@ import path from "path";
 import adsbannerRoutes from "./routes/adsRoutes.js";
 import brandRoutes from "./routes/brandNameRoutes.js"; 
 import usersListsRoutes from "./routes/cartRoutes.js"; 
+import pincodeRoutes from "./routes/pincodeRoutes.js";
 // use routes
 
 // Configure environment variables
@@ -44,10 +45,12 @@ app.use("/api/v1/category", categoryRoutes);
 app.use("/api/v1/product", productRoutes);
 app.use("/api/v1/subcategory", subCategoryRoutes);
 app.use("/api/v1/bannerManagement", bannerRoutes);
+app.use("/api/v1/banner-products", bannerRoutes);
+
 app.use("/api/v1/adsbanner", adsbannerRoutes);
 app.use("/api/v1/brand", brandRoutes); // Use brand routes
 app.use("/api/v1/usersLists", usersListsRoutes);
-
+app.use('/api/v1/pincodes', pincodeRoutes);
 // Serve React app for any other unknown routes
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "./client/build", "index.html"));

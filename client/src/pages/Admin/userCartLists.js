@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Edit } from 'lucide-react';
 import Layout from "../../components/Layout/Layout";
 import AdminMenu from "../../components/Layout/AdminMenu";
 
@@ -11,6 +11,8 @@ const UserList = () => {
   const [error, setError] = useState(null);
   const [activeStatusFilter, setActiveStatusFilter] = useState('all');
   const [activeOrderTypeFilter, setActiveOrderTypeFilter] = useState('all');
+  const [editingUser, setEditingUser] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -78,18 +80,32 @@ const UserList = () => {
     window.open(whatsappUrl, '_blank');
   };
 
+  const openEditModal = (user) => {
+    setEditingUser(user);
+    setIsEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    setEditingUser(null);
+    setIsEditModalOpen(false);
+  };
+
+  const handleEditUser = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.put(`/api/v1/usersLists/users/${editingUser._id}`, editingUser);
+      fetchUsers();
+      closeEditModal();
+    } catch (error) {
+      console.error('Error updating user:', error);
+      setError('Failed to update user. Please try again.');
+    }
+  };
+
   const TabButton = ({ label, isActive, onClick }) => (
     <button
       onClick={onClick}
-      style={{
-        padding: '8px 16px',
-        marginRight: '8px',
-        backgroundColor: isActive ? '#007bff' : '#f0f0f0',
-        color: isActive ? 'white' : 'black',
-        border: 'none',
-        borderRadius: '4px',
-        cursor: 'pointer',
-      }}
+      className={`mr-2 px-4 py-2 rounded ${isActive ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
     >
       {label}
     </button>
@@ -102,7 +118,7 @@ const UserList = () => {
 
     if (error) {
       return (
-        <div style={{ border: '1px solid red', padding: '10px', margin: '10px 0', color: 'red' }}>
+        <div className="border border-red-500 p-4 m-4 text-red-500">
           {error}
         </div>
       );
@@ -110,107 +126,90 @@ const UserList = () => {
 
     return (
       <>
-        <h1>User List</h1>
-        <div style={{ marginBottom: '20px' }}>
-          <h3>Status Filter:</h3>
-          <TabButton label="All" isActive={activeStatusFilter === 'all'} onClick={() => setActiveStatusFilter('all')} />
-          <TabButton label="Active" isActive={activeStatusFilter === 'active'} onClick={() => setActiveStatusFilter('active')} />
-          <TabButton label="Blocked" isActive={activeStatusFilter === 'blocked'} onClick={() => setActiveStatusFilter('blocked')} />
-          <TabButton label="Pending" isActive={activeStatusFilter === 'pending'} onClick={() => setActiveStatusFilter('pending')} />
+        <h1 className="text-2xl font-bold mb-4">User List</h1>
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold mb-2">Status Filter:</h3>
+          <div>
+            <TabButton label="All" isActive={activeStatusFilter === 'all'} onClick={() => setActiveStatusFilter('all')} />
+            <TabButton label="Active" isActive={activeStatusFilter === 'active'} onClick={() => setActiveStatusFilter('active')} />
+            <TabButton label="Blocked" isActive={activeStatusFilter === 'blocked'} onClick={() => setActiveStatusFilter('blocked')} />
+            <TabButton label="Pending" isActive={activeStatusFilter === 'pending'} onClick={() => setActiveStatusFilter('pending')} />
+          </div>
         </div>
 
-        <div style={{ marginBottom: '20px' }}>
-          <h3>Order Type Filter:</h3>
-          <TabButton label="All" isActive={activeOrderTypeFilter === 'all'} onClick={() => setActiveOrderTypeFilter('all')} />
-          <TabButton label="COD" isActive={activeOrderTypeFilter === 'COD'} onClick={() => setActiveOrderTypeFilter('COD')} />
-          <TabButton label="Prepaid" isActive={activeOrderTypeFilter === 'Prepaid'} onClick={() => setActiveOrderTypeFilter('Prepaid')} />
-          <TabButton label="Advance" isActive={activeOrderTypeFilter === 'Advance'} onClick={() => setActiveOrderTypeFilter('Advance')} />
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold mb-2">Order Type Filter:</h3>
+          <div>
+            <TabButton label="All" isActive={activeOrderTypeFilter === 'all'} onClick={() => setActiveOrderTypeFilter('all')} />
+            <TabButton label="COD" isActive={activeOrderTypeFilter === 'COD'} onClick={() => setActiveOrderTypeFilter('COD')} />
+            <TabButton label="Prepaid" isActive={activeOrderTypeFilter === 'Prepaid'} onClick={() => setActiveOrderTypeFilter('Prepaid')} />
+            <TabButton label="Advance" isActive={activeOrderTypeFilter === 'Advance'} onClick={() => setActiveOrderTypeFilter('Advance')} />
+          </div>
         </div>
 
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <table className="w-full border-collapse">
           <thead>
             <tr>
-              <th style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'left' }}>Name</th>
-              <th style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'left' }}>Email</th>
-              <th style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'left' }}>Phone</th>
-              <th style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'left' }}>Address</th>
-              <th style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'left' }}>Status</th>
-              <th style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'left' }}>Order Type</th>
-              <th style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'left' }}>Actions</th>
+              <th className="border p-2 text-left">Name</th>
+              <th className="border p-2 text-left">Email</th>
+              <th className="border p-2 text-left">Phone</th>
+              <th className="border p-2 text-left">Address</th>
+              <th className="border p-2 text-left">Status</th>
+              <th className="border p-2 text-left">Order Type</th>
+              <th className="border p-2 text-left">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredUsers.map((user) => (
               <tr key={user._id}>
-                <td style={{ border: '1px solid #ddd', padding: '8px' }}>{user.name}</td>
-                <td style={{ border: '1px solid #ddd', padding: '8px' }}>{user.email}</td>
-                <td style={{ border: '1px solid #ddd', padding: '8px' }}>
+                <td className="border p-2">{user.name}</td>
+                <td className="border p-2">{user.email}</td>
+                <td className="border p-2">
                   {user.phone && (
-                    <span>
+                    <span className="flex items-center">
                       {user.phone}
                       <MessageCircle
                         onClick={() => redirectToWhatsApp(user.phone)}
-                        style={{ cursor: 'pointer', marginLeft: '5px', verticalAlign: 'middle' }}
+                        className="cursor-pointer ml-2"
                         size={18}
                         color="#25D366"
                       />
                     </span>
                   )}
                 </td>
-                <td style={{ border: '1px solid #ddd', padding: '8px' }}>
+                <td className="border p-2">
                   {user.address || 'N/A'}
                 </td>
-                <td style={{ border: '1px solid #ddd', padding: '8px' }}>{user.status}</td>
-                <td style={{ border: '1px solid #ddd', padding: '8px' }}>
-                  <div style={{ display: 'flex', gap: '10px' }}>
+                <td className="border p-2">{user.status}</td>
+                <td className="border p-2">
+                  <div className="flex gap-2">
                     {['COD', 'Prepaid', 'Advance'].map((type) => (
-                      <label key={type} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                      <label key={type} className="flex items-center cursor-pointer">
                         <input
                           type="radio"
                           name={`orderType-${user._id}`}
                           value={type}
                           checked={getOrderType(user.order_type) === type.toLowerCase()}
                           onChange={() => updateOrderType(user._id, type)}
-                          style={{ 
-                            appearance: 'none',
-                            width: '16px',
-                            height: '16px',
-                            border: '2px solid #333',
-                            borderRadius: '50%',
-                            outline: 'none',
-                            marginRight: '5px',
-                            position: 'relative',
-                          }}
-                        />
-                        <span 
-                          style={{
-                            position: 'absolute',
-                            width: '10px',
-                            height: '10px',
-                            backgroundColor: getOrderType(user.order_type) === type.toLowerCase() ? '#333' : 'transparent',
-                            borderRadius: '50%',
-                            marginLeft: '3px',
-                            marginTop: '3px',
-                            pointerEvents: 'none',
-                          }}
+                          className="mr-1"
                         />
                         {type}
                       </label>
                     ))}
                   </div>
                 </td>
-                <td style={{ border: '1px solid #ddd', padding: '8px' }}>
+                <td className="border p-2">
                   <button
                     onClick={() => toggleStatus(user._id, user.status)}
-                    style={{
-                      padding: '5px 10px',
-                      background: user.status === 'active' ? 'red' : 'green',
-                      color: 'white',
-                      border: 'none',
-                      cursor: 'pointer'
-                    }}
+                    className={`mr-2 px-3 py-1 rounded ${user.status === 'active' ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}`}
                   >
                     {user.status === 'active' ? 'Block' : 'Activate'}
+                  </button>
+                  <button
+                    onClick={() => openEditModal(user)}
+                    className="px-3 py-1 rounded bg-blue-500 text-white"
+                  >
+                    <Edit size={16} className="inline mr-1" /> Edit
                   </button>
                 </td>
               </tr>
@@ -218,6 +217,59 @@ const UserList = () => {
           </tbody>
         </table>
 
+        {isEditModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div className="bg-white p-6 rounded-lg">
+              <h2 className="text-xl font-bold mb-4">Edit User</h2>
+              <form onSubmit={handleEditUser}>
+                <div className="mb-4">
+                  <label htmlFor="name" className="block mb-1">Name</label>
+                  <input
+                    id="name"
+                    type="text"
+                    value={editingUser.name}
+                    onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
+                    className="w-full p-2 border rounded"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="email" className="block mb-1">Email</label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={editingUser.email}
+                    onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                    className="w-full p-2 border rounded"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="phone" className="block mb-1">Phone</label>
+                  <input
+                    id="phone"
+                    type="tel"
+                    value={editingUser.phone}
+                    onChange={(e) => setEditingUser({ ...editingUser, phone: e.target.value })}
+                    className="w-full p-2 border rounded"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="address" className="block mb-1">Address</label>
+                  <input
+                    id="address"
+                    type="text"
+                    value={editingUser.address}
+                    onChange={(e) => setEditingUser({ ...editingUser, address: e.target.value })}
+                    className="w-full p-2 border rounded"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <button type="button" onClick={closeEditModal} className="mr-2 px-4 py-2 rounded bg-gray-300">Cancel</button>
+                  <button type="submit" className="px-4 py-2 rounded bg-blue-500 text-white">Save changes</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </>
     );
   };

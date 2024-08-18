@@ -3,22 +3,22 @@ import mongoose from "mongoose";
 
 const bannerSchema = new mongoose.Schema(
   {
-    name: {
+    bannerName: {
       type: String,
       required: true,
     },
     slug: {
       type: String,
-      required: true,
+      // required: true,
     },
-    category: {
+    categoryId: {
       type: mongoose.ObjectId,
       ref: "Category",
       required: true,
     },
-    subcategory: {
+    subcategoryId: {
       type: mongoose.ObjectId,
-      ref: "Subcategory",
+      ref: "SubCategory",
       required: true,
     },
     image: {

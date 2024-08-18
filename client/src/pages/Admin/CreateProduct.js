@@ -114,9 +114,9 @@ const CreateProduct = () => {
     list[index].maxNetWeight = (parseFloat(list[index].maximum) * netWeight).toFixed(2);
   
     if (name === "discount_mrp") {
-      const minimumQuantity = parseFloat(list[index].minimum) || 0;
-      const setPrice = parseFloat(price);
-      const totalPrice = minimumQuantity * netWeight * setPrice;
+   
+      const setPrice = parseFloat(perPiecePrice);
+      const totalPrice = setPrice;
       const discountAmount = parseFloat(value); // Use the actual discount amount
       list[index].selling_price_set = (totalPrice - discountAmount).toFixed(2);
     }
@@ -438,23 +438,10 @@ const CreateProduct = () => {
                   />
                 </div>
          
-<div className="col-md-4">
-  <label htmlFor="price" className="form-label">
-  PER PIECE PRICE
-  </label>
-  <input
-    id="price"
-    type="text"
-    value={price}
-    name="price"
-    placeholder="Enter set price"
-    className="form-control"
-    readOnly
-  />
-</div>
+
 <div className="col-md-4">
   <label htmlFor="perPiecePrice" className="form-label">
-  SET PRICE  
+  PER PIECE PRICE  
   </label>
   <input
     id="perPiecePrice"
@@ -466,7 +453,20 @@ const CreateProduct = () => {
     onChange={handlePerPiecePriceChange}
   />
 </div>
-
+<div className="col-md-4">
+  <label htmlFor="price" className="form-label">
+ SET PRICE
+  </label>
+  <input
+    id="price"
+    type="text"
+    value={price}
+    name="price"
+    placeholder="Enter set price"
+    className="form-control"
+    readOnly
+  />
+</div>
 <div className="col-md-4">
   <label htmlFor="weight" className="form-label">
     WEIGHT

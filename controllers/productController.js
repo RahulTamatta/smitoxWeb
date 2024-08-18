@@ -462,18 +462,26 @@ export const productCategoryController = async (req, res) => {
 export const productSubcategoryController = async (req, res) => {
   try {
     const { subcategoryId } = req.params;
+
+    // Validate that subcategoryId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(subcategoryId)) {
+      return res.status(400).send({
+        success: false,
+        message: "Invalid subcategory ID",
+      });
+    }
+
     const subcategory = await subcategoryModel.findById(subcategoryId);
-    
+
     if (!subcategory) {
       return res.status(404).send({
         success: false,
         message: "Subcategory not found",
       });
     }
-    
-    // Query products based on the subcategoryId
+
     const products = await productModel.find({ subcategory: subcategoryId });
-    
+
     res.status(200).send({
       success: true,
       message: "Products fetched successfully",
@@ -625,28 +633,3 @@ export const processPaymentController = async (req, res) => {
 };
 
 
-
-
-
-// export const productSubcategoryController = async (req, res) => {
-//   try {
-//     const { subcategoryId } = req.params;
-//     const products = await productModel.find({ subcategory: subcategoryId })
-//       .populate('category')
-//       .populate('subcategory')
-//       .populate('brand');
-
-//     res.status(200).send({
-//       success: true,
-//       message: "Products fetched successfully",
-//       products,
-//     });
-//   } catch (error) {
-//     console.log(error);
-//     res.status(500).send({
-//       success: false,
-//       error,
-//       message: "Error while getting products",
-//     });
-//   }
-// };

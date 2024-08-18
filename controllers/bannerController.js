@@ -1,43 +1,83 @@
 import bannerModel from "../models/bannerModel.js";
 import fs from "fs";
 import slugify from "slugify";
+import productModel from "../models/productModel.js";
+import mongoose from 'mongoose';
+
+
+export const getBannerProductsController = async (req, res) => {
+  try {
+    const { categoryId, subcategoryId } = req.params;
+
+    // Debugging: Log the IDs
+    console.log("CatId", categoryId);
+    console.log("SubCatId", subcategoryId);
+
+    // Validate the IDs (they should be strings representing ObjectIds)
+    if (!mongoose.Types.ObjectId.isValid(categoryId) || !mongoose.Types.ObjectId.isValid(subcategoryId)) {
+      return res.status(400).send({ success: false, message: "Invalid category or subcategory ID" });
+    }
+
+    const products = await productModel.find({
+      category: categoryId,
+      subcategory: subcategoryId
+    }).populate("category subcategory");
+
+    res.status(200).send({
+      success: true,
+      message: "Products fetched successfully",
+      products,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({
+      success: false,
+      message: "Error in fetching banner products",
+      error: error.message,
+    });
+  }
+};
+
+
 
 export const createBannerController = async (req, res) => {
   try {
     const { bannerName, categoryId, subcategoryId } = req.fields;
     const { image } = req.files;
-    console.log("request body", {image,name});
-    
+    console.log("Banner",{bannerName,categoryId,subcategoryId});
     // Validation
     if (!bannerName) return res.status(400).send({ error: "Name is required" });
     if (!categoryId) return res.status(400).send({ error: "Category is required" });
     if (!subcategoryId) return res.status(400).send({ error: "Subcategory is required" });
     if (image && image.size > 1000000)
       return res.status(400).send({ error: "Image should be less than 1mb in size" });
-const bannerData={
-    bannerName,categoryId,subcategoryId,image
-}
-   if (image) {
-      banner.image.data = fs.readFileSync(image.path);
-      banner.image.contentType = image.type;
-    }
-    const banner = new bannerModel(bannerData).save();
-   
+
+    const bannerData = {
+      bannerName,
+      categoryId,
+      subcategoryId,
+      image: {
+        data: image ? fs.readFileSync(image.path) : undefined,
+        contentType: image ? image.type : undefined
+      }
+    };
+
+    const banner = await new bannerModel(bannerData).save();
+    
     res.status(201).send({
       success: true,
       message: "Banner created successfully",
       banner,
     });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).send({
       success: false,
-      error,
+      error: error.message,
       message: "Error in creating banner",
     });
   }
 };
-
 export const updateBannerController = async (req, res) => {
   try {
     const { name, category, subcategory } = req.fields;
@@ -80,11 +120,12 @@ export const getBannersController = async (req, res) => {
   try {
     const banners = await bannerModel
       .find({})
-      .populate("category")
-      .populate("subcategory")
-      .select("-image")
+      .populate("categoryId", "name")
+      .populate("subcategoryId", "name")
+      .select("bannerName categoryId subcategoryId image")
       .limit(12)
       .sort({ createdAt: -1 });
+
     res.status(200).send({
       success: true,
       countTotal: banners.length,
@@ -156,3 +197,4 @@ export const deleteBannerController = async (req, res) => {
     });
   }
 };
+
