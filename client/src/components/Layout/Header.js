@@ -1,16 +1,32 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink, Link } from "react-router-dom";
 import { useAuth } from "../../context/auth";
 import toast from "react-hot-toast";
 import SearchInput from "../Form/SearchInput";
-import useCategory from "../../hooks/useCategory";
-import { useCart } from "../../context/cart";
 import { Badge } from "antd";
+import axios from "axios";
 
 const Header = () => {
   const [auth, setAuth] = useAuth();
-  const [cart] = useCart();
-  const categories = useCategory();
+  const [cartCount, setCartCount] = useState(0);
+
+  // Fetch cart count from the server
+  const fetchCartCount = async () => {
+    try {
+      if (auth?.user) {
+        const { data } = await axios.get(`/api/v1/carts/users/${auth.user._id}/cart`);
+        setCartCount(data.cart.length);  // Assuming cart is an array
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Error fetching cart count");
+    }
+  };
+
+  useEffect(() => {
+    fetchCartCount();
+  }, [auth?.user]);
+
   const handleLogout = () => {
     setAuth({
       ...auth,
@@ -20,6 +36,7 @@ const Header = () => {
     localStorage.removeItem("auth");
     toast.success("Logout Successfully");
   };
+
   return (
     <>
       <nav className="navbar navbar-expand-lg bg-body-tertiary fixed-top">
@@ -46,32 +63,6 @@ const Header = () => {
                   Home
                 </NavLink>
               </li>
-              {/* <li className="nav-item dropdown">
-                <Link
-                  className="nav-link dropdown-toggle"
-                  to={"/categories"}
-                  data-bs-toggle="dropdown"
-                >
-                  Categories
-                </Link>
-                <ul className="dropdown-menu">
-                  <li>
-                    <Link className="dropdown-item" to={"/categories"}>
-                      All Categories
-                    </Link>
-                  </li>
-                  {categories?.map((c) => (
-                    <li>
-                      <Link
-                        className="dropdown-item"
-                        to={`/category/${c.slug}`}
-                      >
-                        {c.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </li> */}
 
               {!auth?.user ? (
                 <>
@@ -124,7 +115,7 @@ const Header = () => {
               )}
               <li className="nav-item">
                 <NavLink to="/cart" className="nav-link">
-                  <Badge count={cart?.length} showZero offset={[10, -5]}>
+                  <Badge count={cartCount} showZero offset={[10, -5]}>
                     Cart
                   </Badge>
                 </NavLink>

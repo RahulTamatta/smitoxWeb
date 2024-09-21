@@ -12,7 +12,7 @@ import {
   realtedProductController,
   searchProductController,
   updateProductController,
-
+  getProductPhoto,
   productSubcategoryController,
   processPaymentController, // Add this new controller
   braintreeTokenController, // Keep this for Braintree token generation
@@ -52,7 +52,7 @@ router.get("/product-category/:slug", productCategoryController);
 router.get("/product-subcategory/:subcategoryId", productSubcategoryController);
 // Payment routes
 router.get("/braintree/token", braintreeTokenController); // Keep this for Braintree token
-
+// router.get("/product-photo/:pid", getProductPhoto);
 // New route for processing payments (both COD and Braintree)
 router.post("/process-payment", requireSignIn, processPaymentController);
 

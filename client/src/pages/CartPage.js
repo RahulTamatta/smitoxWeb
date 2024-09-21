@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import Layout from "./../components/Layout/Layout";
-import { useCart } from "../context/cart";
 import { useAuth } from "../context/auth";
 import { useNavigate } from "react-router-dom";
 import DropIn from "braintree-web-drop-in-react";
@@ -10,44 +9,70 @@ import toast from "react-hot-toast";
 import "../styles/CartStyles.css";
 
 const CartPage = () => {
-  const [auth, setAuth] = useAuth();
-  const [cart, setCart] = useCart();
+  const [auth] = useAuth();
+  const [cart, setCart] = useState([]);
   const [clientToken, setClientToken] = useState("");
   const [instance, setInstance] = useState("");
   const [loading, setLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("Braintree");
+  const [minimumOrder, setMinimumOrder] = useState(0);
+  const [minimumOrderCurrency, setMinimumOrderCurrency] = useState("");
   const navigate = useNavigate();
 
-  //total price
+  useEffect(() => {
+    if (auth?.token) {
+      getCart();
+      fetchMinimumOrder();
+    }
+  }, [auth?.token]);
+
+  const getCart = async () => {
+    try {
+      const { data } = await axios.get(`/api/v1/carts/users/${auth.user._id}/cart`);
+      setCart(data.cart);
+    } catch (error) {
+      console.log(error);
+      toast.error("Error fetching cart");
+    }
+  };
+
+  const fetchMinimumOrder = async () => {
+    try {
+      const { data } = await axios.get('/api/v1/minimumOrder/getMinimumOrder');
+      if (data) {
+        setMinimumOrder(data.amount);
+        setMinimumOrderCurrency(data.currency);
+      }
+    } catch (error) {
+      console.error('Error fetching minimum order:', error);
+      toast.error("Error fetching minimum order amount");
+    }
+  };
+
   const totalPrice = () => {
     try {
       let total = 0;
-      cart?.map((item) => {
-        total = total + item.price;
+      cart?.forEach((item) => {
+        total += item.totalPrice;
       });
-      return total.toLocaleString("en-US", {
-        style: "currency",
-        currency: "INR",
-      });
+      return total;
     } catch (error) {
       console.log(error);
+      return 0;
     }
   };
 
-  //delete item
-  const removeCartItem = (pid) => {
+  const removeCartItem = async (pid) => {
     try {
-      let myCart = [...cart];
-      let index = myCart.findIndex((item) => item._id === pid);
-      myCart.splice(index, 1);
-      setCart(myCart);
-      localStorage.setItem("cart", JSON.stringify(myCart));
+      await axios.delete(`/api/v1/carts/users/${auth.user._id}/cart`, { data: { productId: pid } });
+      getCart();
+      toast.success("Item removed from cart");
     } catch (error) {
       console.log(error);
+      toast.error("Error removing item from cart");
     }
   };
 
-  // get payment gateway token
   const getToken = async () => {
     try {
       const { data } = await axios.get("/api/v1/product/braintree/token");
@@ -61,22 +86,27 @@ const CartPage = () => {
     getToken();
   }, [auth?.token]);
 
-  // handle payments
   const handlePayment = async () => {
     try {
+      const total = totalPrice();
+      if (total < minimumOrder) {
+        toast.error(`Minimum order amount is ${minimumOrderCurrency} ${minimumOrder}`);
+        return;
+      }
+
       setLoading(true);
       let payload;
 
       if (paymentMethod === "Braintree") {
         const { nonce } = await instance.requestPaymentMethod();
-        payload = { nonce, cart, paymentMethod };
+        payload = { nonce, cart };
       } else {
-        payload = { cart, paymentMethod };
+        payload = { cart };
       }
 
       const { data } = await axios.post("/api/v1/product/process-payment", payload);
       setLoading(false);
-      localStorage.removeItem("cart");
+      await axios.delete(`/api/v1/carts/users/${auth.user._id}/cart/clear`);
       setCart([]);
       navigate("/dashboard/user/orders");
       toast.success("Order Placed Successfully");
@@ -109,41 +139,51 @@ const CartPage = () => {
         <div className="container">
           <div className="row">
             <div className="col-md-7 p-0 m-0">
-            {cart?.map((p) => (
-  <div className="row card flex-row" key={p._id}>
-    <div className="col-md-4">
-      <img
-        src={`/api/v1/product/product-photo/${p._id}`}
-        className="card-img-top"
-        alt={p.name}
-        width="100%"
-        height={"130px"}
-      />
-    </div>
-    <div className="col-md-4">
-      <p>{p.name}</p>
-      <p>{p.description.substring(0, 30)}</p>
-      <p>Price: {p.price}</p>
-      <p>Quantity: {p.quantity}</p> {/* Display selected quantity */}
-      <p>Total Price: {p.totalPrice}</p> {/* Display total price */}
-    </div>
-    <div className="col-md-4 cart-remove-btn">
-      <button
-        className="btn btn-danger"
-        onClick={() => removeCartItem(p._id)}
-      >
-        Remove
-      </button>
-    </div>
-  </div>
-))}
-
+              {cart?.map((p) => (
+                <div className="row card flex-row" key={p._id}>
+                  <div className="col-md-4">
+                    <img
+                      src={`/api/v1/product/product-photo/${p.product._id}`}
+                      className="card-img-top"
+                      alt={p.product.name}
+                      width="100%"
+                      height={"130px"}
+                    />
+                  </div>
+                  <div className="col-md-4">
+                    <p>{p.product.name}</p>
+                    <p>Price: ₹{p.bulkProductDetails?.selling_price_set || p.product.price}</p>
+                    <p>Quantity: {p.quantity}</p>
+                    <p>Total Price: ₹{p.totalPrice}</p>
+                  </div>
+                  <div className="col-md-4 cart-remove-btn">
+                    <button
+                      className="btn btn-danger"
+                      onClick={() => removeCartItem(p.product._id)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
             <div className="col-md-5 cart-summary">
               <h2>Cart Summary</h2>
               <p>Total | Checkout | Payment</p>
               <hr />
-              <h4>Total : {totalPrice()} </h4>
+              <h4>Total : {totalPrice().toLocaleString("en-US", {
+                style: "currency",
+                currency: minimumOrderCurrency || "INR",
+              })} </h4>
+              <p>Minimum Order: {minimumOrder.toLocaleString("en-US", {
+                style: "currency",
+                currency: minimumOrderCurrency || "INR",
+              })}</p>
+              {totalPrice() < minimumOrder && (
+                <p className="text-danger">
+                  <AiFillWarning /> Order total is below the minimum order amount
+                </p>
+              )}
               {auth?.user?.address ? (
                 <>
                   <div className="mb-3">
@@ -210,7 +250,7 @@ const CartPage = () => {
                     <button
                       className="btn btn-primary"
                       onClick={handlePayment}
-                      disabled={loading || (paymentMethod === "Braintree" && !instance) || !auth?.user?.address}
+                      disabled={loading || (paymentMethod === "Braintree" && !instance) || !auth?.user?.address || totalPrice() < minimumOrder}
                     >
                       {loading ? "Processing ...." : `Place Order (${paymentMethod})`}
                     </button>

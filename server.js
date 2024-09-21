@@ -10,12 +10,15 @@ import categoryRoutes from "./routes/categoryRoutes.js";
 import subCategoryRoutes from "./routes/subCategoryRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import bannerRoutes from "./routes/bannerRoutes.js";
+import productForYou from "./routes/productForYouRoutes.js";
 import cors from "cors";
 import path from "path";
 import adsbannerRoutes from "./routes/adsRoutes.js";
 import brandRoutes from "./routes/brandNameRoutes.js"; 
 import usersListsRoutes from "./routes/cartRoutes.js"; 
 import pincodeRoutes from "./routes/pincodeRoutes.js";
+import cartRoutes from "./routes/cartRoutes.js";
+import minimumOrderRoutes from "./routes/miniMumRoutes.js";
 // use routes
 
 // Configure environment variables
@@ -45,12 +48,19 @@ app.use("/api/v1/category", categoryRoutes);
 app.use("/api/v1/product", productRoutes);
 app.use("/api/v1/subcategory", subCategoryRoutes);
 app.use("/api/v1/bannerManagement", bannerRoutes);
+
+app.use('/api/v1/minimumOrder', minimumOrderRoutes);
 app.use("/api/v1/banner-products", bannerRoutes);
+app.use("/api/v1/productForYou", productForYou);
+
+
 
 app.use("/api/v1/adsbanner", adsbannerRoutes);
 app.use("/api/v1/brand", brandRoutes); // Use brand routes
 app.use("/api/v1/usersLists", usersListsRoutes);
 app.use('/api/v1/pincodes', pincodeRoutes);
+app.use('/api/v1/carts', cartRoutes);
+
 // Serve React app for any other unknown routes
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "./client/build", "index.html"));

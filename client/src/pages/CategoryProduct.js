@@ -15,9 +15,13 @@ const CategoryProduct = () => {
   const [products, setProducts] = useState([]);
   const [category, setCategory] = useState({});
   const [subcategories, setSubcategories] = useState([]);
-  const [selectedSubcategory, setSelectedSubcategory] = useState(location.state?.selectedSubcategory || null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState(
+    location.state?.selectedSubcategory || null
+  );
   const [loading, setLoading] = useState(true);
-  const [fromBanner, setFromBanner] = useState(location.state?.fromBanner || false);
+  const [fromBanner, setFromBanner] = useState(
+    location.state?.fromBanner || false
+  );
 
   useEffect(() => {
     if (params?.slug) {
@@ -35,7 +39,9 @@ const CategoryProduct = () => {
 
   const getCategoryAndSubcategories = async () => {
     try {
-      const { data } = await axios.get(`/api/v1/product/product-category/${params.slug}`);
+      const { data } = await axios.get(
+        `/api/v1/product/product-category/${params.slug}`
+      );
       setCategory(data?.category);
       await getSubcategories(data?.category._id);
     } catch (error) {
@@ -84,7 +90,9 @@ const CategoryProduct = () => {
   const fetchProductsBySubcategory = async (subcategoryId) => {
     try {
       setLoading(true);
-      const { data } = await axios.get(`/api/v1/product/product-subcategory/${subcategoryId}`);
+      const { data } = await axios.get(
+        `/api/v1/product/product-subcategory/${subcategoryId}`
+      );
       setProducts(data?.products || []);
     } catch (error) {
       console.log(error);
@@ -134,7 +142,7 @@ const CategoryProduct = () => {
   return (
     <Layout>
       <div className="container mt-3 category">
-        <h4 className="text-center" style={{ marginBottom: '1rem' }}>
+        <h4 className="text-center" style={{ marginBottom: "1rem" }}>
           Category - {category?.name}
         </h4>
 
@@ -144,26 +152,32 @@ const CategoryProduct = () => {
             <Slider {...settings}>
               <div
                 key="all"
-                className={`subcategory-item ${!selectedSubcategory ? "active" : ""}`}
+                className={`subcategory-item ${
+                  !selectedSubcategory ? "active" : ""
+                }`}
                 onClick={() => {
                   setSelectedSubcategory(null);
                   fetchProductsByCategoryOrSubcategory(null);
                 }}
-                style={{ cursor: 'pointer', textAlign: 'center', margin: '0 10px' }}
+                style={{
+                  cursor: "pointer",
+                  textAlign: "center",
+                  margin: "0 10px",
+                }}
               >
                 <div
                   className="subcategory-circle"
                   style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    width: '80px',
-                    height: '80px',
-                    borderRadius: '50%',
-                    overflow: 'hidden',
-                    margin: '0 auto',
-                    border: 'none', // Remove border
-                    padding: '0', // Remove padding
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    width: "80px",
+                    height: "80px",
+                    borderRadius: "50%",
+                    overflow: "hidden",
+                    margin: "0 auto",
+                    border: "none", // Remove border
+                    padding: "0", // Remove padding
                   }}
                 >
                   {/* <img
@@ -182,28 +196,37 @@ const CategoryProduct = () => {
                     selectedSubcategory === s._id ? "active" : ""
                   }`}
                   onClick={() => filterBySubcategory(s._id)}
-                  style={{ cursor: 'pointer', textAlign: 'center', margin: '0 10px' }}
+                  style={{
+                    cursor: "pointer",
+                    textAlign: "center",
+                    margin: "0 10px",
+                  }}
                 >
                   <div
                     className="subcategory-circle"
                     style={{
-                      display: 'flex',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      width: '80px',
-                      height: '80px',
-                      borderRadius: '50%',
-                      overflow: 'hidden',
-                      margin: '0 auto',
-                      border: 'none', // Remove border
-                      padding: '0', // Remove padding
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      width: "80px",
+                      height: "80px",
+                      borderRadius: "50%",
+                      overflow: "hidden",
+                      margin: "0 auto",
+                      border: "none", // Remove border
+                      padding: "0", // Remove padding
                     }}
                   >
                     <img
-                      src={s.photo}  // Updated to use photo field
+                      src={s.photo} // Updated to use photo field
                       alt={s.name}
                       className="subcategory-image"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        display: "block",
+                      }}
                     />
                   </div>
                   <h6 className="mt-2">{s.name}</h6>
@@ -212,57 +235,58 @@ const CategoryProduct = () => {
             </Slider>
           </div>
         )}
-
-        <h6 className="text-center" style={{ marginBottom: '1rem' }}>
-          {products?.length} result{products?.length !== 1 ? 's' : ''}
+        <h6 className="text-center mb-4">
+          {products?.length} result{products?.length !== 1 ? "s" : ""}
         </h6>
-        <div className="row">
-          <div className="col-md-9 offset-1">
-            {loading ? (
-              <div className="text-center">Loading...</div>
-            ) : products?.length > 0 ? (
-              <div className="d-flex flex-wrap">
-                {products.map((p) => (
-                  <div className="card m-2" key={p._id} style={{ width: '18rem', border: 'none', boxShadow: 'none' }}>
-                    <img
-                      src={`/api/v1/product/product-photo/${p._id}`}
-                      className="card-img-top"
-                      alt={p.name}
-                      style={{ objectFit: 'cover', height: '200px', border: 'none', padding: '0' }}
-                    />
-                    <div className="card-body">
-                      <div className="card-name-price" style={{ marginBottom: '1rem' }}>
-                        <h5 className="card-title">{p.name}</h5>
-                        <h5 className="card-title card-price">
-                          {p.price.toLocaleString("en-US", {
+
+        {loading ? (
+          <div className="text-center">Loading...</div>
+        ) : products?.length > 0 ? (
+          <div className="row">
+            {products.map((p) => (
+              <div className="col-md-4 col-sm-6 mb-3" key={p._id}>
+                <div
+                  className="card product-card h-100"
+                  style={{ cursor: "pointer" }}
+                  onClick={() => navigate(`/product/${p.slug}`)}
+                >
+                  <img
+                    src={`/api/v1/product/product-photo/${p._id}`}
+                    className="card-img-top product-image"
+                    alt={p.name}
+                    style={{ height: "200px", objectFit: "contain" }}
+                  />
+                  <div className="card-body d-flex flex-column">
+                    <h5 className="card-title product-name">{p.name}</h5>
+                    <p className="card-text flex-grow-1">
+                      {p.description.substring(0, 60)}...
+                    </p>
+                    <div className="mt-auto">
+                      <h5 className="card-title product-price">
+                        {p.price.toLocaleString("en-US", {
+                          style: "currency",
+                          currency: "INR",
+                        })}
+                      </h5>
+                      {p.mrp && p.mrp > p.price && (
+                        <h6 className="original-price product-original-price">
+                          {p.mrp.toLocaleString("en-US", {
                             style: "currency",
                             currency: "INR",
                           })}
-                        </h5>
-                      </div>
-                      <p className="card-text" style={{ marginBottom: '1rem' }}>
-                        {p.description.substring(0, 60)}...
-                      </p>
-                      <div className="card-name-price">
-                        <button
-                          className="btn btn-info ms-1"
-                          onClick={() => navigate(`/product/${p.slug}`)}
-                        >
-                          More Details
-                        </button>
-                      </div>
+                        </h6>
+                      )}
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
-            ) : (
-              <div className="text-center">No products found.</div>
-            )}
+            ))}
           </div>
-        </div>
+        ) : (
+          <div className="text-center">No products found.</div>
+        )}
       </div>
     </Layout>
   );
 };
-
 export default CategoryProduct;

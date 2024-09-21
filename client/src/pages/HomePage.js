@@ -1,19 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Checkbox, Radio } from "antd";
-import { useCart } from "../context/cart";
+import Slider from "react-slick";
 import axios from "axios";
 import toast from "react-hot-toast";
 import Layout from "./../components/Layout/Layout";
 import { AiOutlineReload } from "react-icons/ai";
 import "../styles/Homepage.css";
-import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
-import DealSlider from './DealSlider/DealSlider'
-import ProductSlider from './DealSlider/Product'
-import '../../src/homepage.css';
-import '../../src/styles/Homepage.css';
+import { useCart } from "../context/cart";
+import SearchInput from "../components/Form/SearchInput";
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -28,14 +24,23 @@ const HomePage = () => {
   const [banners, setBanners] = useState([]);
   const [user, setUser] = useState(null);
   const [isBlocked, setIsBlocked] = useState(false);
+  const [productsForYou, setProductsForYou] = useState([]);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   useEffect(() => {
     getAllCategory();
     getTotal();
     getBanners();
     checkUserStatus();
+    getProductsForYou();
   }, []);
-
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const checkUserStatus = async () => {
     try {
       const { data } = await axios.get("/api/v1/usersLists/current-user");
@@ -50,7 +55,14 @@ const HomePage = () => {
       toast.error('Failed to fetch user status. Please try again later.');
     }
   };
-
+  const mobileSearchStyle = {
+    position: 'sticky',
+    top: 0,
+    zIndex: 1000,
+    backgroundColor: '#2874f0',
+    padding: '10px',
+    display: isMobile ? 'block' : 'none',
+  };
   const getAllCategory = async () => {
     try {
       const { data } = await axios.get("/api/v1/category/get-category");
@@ -80,6 +92,18 @@ const HomePage = () => {
       setTotal(data?.total);
     } catch (error) {
       console.log(error);
+    }
+  };
+
+  const getProductsForYou = async () => {
+    try {
+      const { data } = await axios.get("/api/v1/productForYou/get-products");
+      if (data?.success) {
+        setProductsForYou(data.banners || []);
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to fetch products for you");
     }
   };
 
@@ -142,21 +166,19 @@ const HomePage = () => {
     }
   };
 
-  
-const handleBannerClick = (banner) => {
-  console.log("Clicked banner", banner.categoryId, banner.subcategoryId);
-  
-  if (banner.categoryId) {
-    navigate(`/category/${banner.categoryId.name}`, {
-      state: { 
-        selectedSubcategory: banner.subcategoryId.slug || null,
-        fromBanner: true
-      }
-    });
-  } else {
-    toast.error("Banner is not linked to a category");
-  }
-};
+  const handleBannerClick = (banner) => {
+    if (banner.categoryId) {
+      navigate(`/category/${banner.categoryId.name}`, {
+        state: { 
+          selectedSubcategory: banner.subcategoryId.slug || null,
+          fromBanner: true
+        }
+      });
+    } else {
+      toast.error("Banner is not linked to a category");
+    }
+  };
+
   const settings = {
     dots: false,
     infinite: false,
@@ -201,22 +223,9 @@ const handleBannerClick = (banner) => {
   if (isBlocked) {
     return (
       <Layout title="Account Blocked">
-        <div className="container mt-5">
-          <div className="row">
-            <div className="col-md-6 offset-md-3">
-              <div className="card">
-                <div className="card-body text-center">
-                  <h2 className="card-title text-danger">Account Blocked</h2>
-                  <p className="card-text">
-                    Your account has been blocked. Please contact us for further assistance.
-                  </p>
-                  <p className="card-text">
-                    Email: <a href="mailto:support@example.com">support@example.com</a>
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="container">
+          <h1>Your account has been blocked</h1>
+          <p>Please contact support for more information.</p>
         </div>
       </Layout>
     );
@@ -224,7 +233,11 @@ const handleBannerClick = (banner) => {
 
   return (
     <Layout title={"All Products - Best offers"}>
-      <div className="banner-container">
+    <div style={mobileSearchStyle}>
+  <SearchInput style={{ paddingTop: '1000px' }} />
+</div>
+
+      <div className="banner-container" style={{ height: '300px', overflow: 'hidden', marginTop: isMobile ? '10px' : '0' }}>
         <Slider {...bannerSettings}>
           {banners.map((banner) => (
             <div key={banner._id} onClick={() => handleBannerClick(banner)} style={{cursor: 'pointer'}}>
@@ -232,12 +245,13 @@ const handleBannerClick = (banner) => {
                 src={`/api/v1/bannerManagement/single-banner/${banner._id}`}
                 alt={banner.bannerName}
                 className="banner-image"
+                style={{ width: '100%', height: '300px', objectFit: 'cover' }}
               />
             </div>
           ))}
         </Slider>
       </div>
- 
+
       <div className="container-fluid mt-3">
         <h2 className="text-center">Categories</h2>
         <Slider {...settings}>
@@ -246,11 +260,13 @@ const handleBannerClick = (banner) => {
               <div
                 className="category-circle"
                 onClick={() => navigate(`/category/${c.slug}`)}
+                style={{ width: '80px', height: '80px', borderRadius: '50%', overflow: 'hidden', margin: '0 auto' }}
               >
                 <img
                   src={c.photo}
                   alt={c.name}
-                  className="img-fluid rounded-circle category-image"
+                  className="img-fluid"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               </div>
               <h6 className="mt-2">{c.name}</h6>
@@ -259,66 +275,120 @@ const handleBannerClick = (banner) => {
         </Slider>
       </div>
 
-      <div className="container-fluid row mt-3 home-page">
-        <div className="col-md-9">
-          <h1 className="text-center">All Products</h1>
-          <div className="d-flex flex-wrap">
-            {products?.map((p) => (
-              <div className="card m-2" key={p._id}>
+      <div className="container mt-4">
+        <h1 className="text-center mb-4">All Products</h1>
+        <div className="row">
+          {products?.map((p) => (
+            <div className="col-md-4 col-sm-6 mb-3" key={p._id}>
+              <div 
+                className="card product-card h-100" 
+                style={{ cursor: 'pointer' }} 
+                onClick={() => navigate(`/product/${p.slug}`)}
+              >
                 <img
                   src={`/api/v1/product/product-photo/${p._id}`}
-                  className="card-img-top"
+                  className="card-img-top product-image"
                   alt={p.name}
+                  style={{ height: '200px', objectFit: 'contain' }}
                 />
-                <div className="card-body">
-                  <div className="card-name-price">
-                    <h5 className="card-title">{p.name}</h5>
-                    <h5 className="card-title card-price">
-                      {p.price.toLocaleString("en-US", {
+                <div className="card-body d-flex flex-column">
+                  <h5 className="card-title product-name">{p.name}</h5>
+                  <div className="mt-auto">
+                    <h5 className="card-title product-price">
+                      {p.price?.toLocaleString("en-US", {
                         style: "currency",
                         currency: "INR",
-                      })}
+                      }) || "Price not available"}
                     </h5>
-                  </div>
-                  <p className="card-text">
-                    {p.description.substring(0, 60)}...
-                  </p>
-                  <div className="card-name-price">
-                    <button
-                      className="btn btn-info ms-1"
-                      onClick={() => navigate(`/product/${p.slug}`)}
-                    >
-                      More Details
-                    </button>
+                    {p.mrp && p.mrp > p.price && (
+                      <h6 className="original-price product-original-price">
+                        {p.mrp.toLocaleString("en-US", {
+                          style: "currency",
+                          currency: "INR",
+                        })}
+                      </h6>
+                    )}
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-          <div className="m-2 p-3">
-            {products && products.length < total && (
-              <button
-                className="btn loadmore"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setPage(page + 1);
-                }}
-              >
-                {loading ? (
-                  "Loading ..."
-                ) : (
-                  <>
-                    {" "}
-                    Loadmore <AiOutlineReload />
-                  </>
-                )}
-              </button>
-            )}
-          </div>
+            </div>
+          ))}
+        </div>
+        
+        <div className="m-2 p-3">
+          {products && products.length < total && (
+            <button
+              className="btn loadmore"
+              onClick={(e) => {
+                e.preventDefault();
+                setPage(page + 1);
+              }}
+            >
+              {loading ? (
+                "Loading ..."
+              ) : (
+                <>
+                  {" "}
+                  Loadmore <AiOutlineReload />
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
-      <DealSlider title={"Discounts for You"} />
-      {!loading && <ProductSlider title={"Suggested for You"} tagline={"Based on Your Activity"} />}
+
+      <div className="container mt-5">
+        <h2 className="text-center mb-4">Products For You</h2>
+        <div className="row">
+          {productsForYou.slice(0, 6).map((item) => (
+            <div className="col-md-4 col-sm-6 mb-3" key={item._id}>
+              <div 
+                className="card h-100" 
+                style={{ cursor: 'pointer' }} 
+                onClick={() => navigate(`/product/${item.productId?.slug}`)}
+              >
+                <img
+                  src={`/api/v1/product/product-photo/${item.productId?._id}`}
+                  className="card-img-top"
+                  alt={item.productId?.name || "Product"}
+                  style={{ height: '200px', objectFit: 'contain' }}
+                />
+                <div className="card-body d-flex flex-column">
+                  <h5 className="card-title">{item.productId?.name || "Product Name"}</h5>
+                  <div className="mt-auto">
+                    <h5 className="card-price">
+                      {item.productId?.price
+                        ? item.productId.price.toLocaleString("en-US", {
+                            style: "currency",
+                            currency: "INR",
+                          })
+                        : "Price not available"}
+                    </h5>
+                    {item.productId?.hsn && item.productId?.hsn > item.productId?.hsn && (
+                      <h6 className="original-price">
+                        {item.productId.hsn.toLocaleString("en-US", {
+                          style: "currency",
+                          currency: "INR",
+                        })}
+                      </h6>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        {productsForYou.length > 10 && (
+          <div className="text-center mt-3">
+            {/* <button 
+              className="btn btn-primary"
+              onClick={() => navigate('/products-for-you')}
+            >
+              View More
+            </button> */}
+          </div>
+        )}
+      </div>
     </Layout>
   );
 };

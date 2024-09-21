@@ -7,7 +7,7 @@ import JWT from "jsonwebtoken";
 
 export const registerController = async (req, res) => {
   try {
-    const { name, email, password, phone, address, answer } = req.body;
+    const { name, email, password, phone, address, pincode, answer } = req.body;
     //validations
     if (!name) {
       return res.send({ error: "Name is Required" });
@@ -24,16 +24,19 @@ export const registerController = async (req, res) => {
     if (!address) {
       return res.send({ message: "Address is Required" });
     }
+    if (!pincode) {
+      return res.send({ message: "PIN Code is Required" });
+    }
     if (!answer) {
       return res.send({ message: "Answer is Required" });
     }
     //check user
-    const exisitingUser = await userModel.findOne({ email });
-    //exisiting user
-    if (exisitingUser) {
+    const existingUser = await userModel.findOne({ email });
+    //existing user
+    if (existingUser) {
       return res.status(200).send({
         success: false,
-        message: "Already Register please login",
+        message: "Already Registered, please login",
       });
     }
     //register user
@@ -44,25 +47,25 @@ export const registerController = async (req, res) => {
       email,
       phone,
       address,
+      pincode,
       password: hashedPassword,
       answer,
     }).save();
 
     res.status(201).send({
       success: true,
-      message: "User Register Successfully",
+      message: "User Registered Successfully",
       user,
     });
   } catch (error) {
     console.log(error);
     res.status(500).send({
       success: false,
-      message: "Errro in Registeration",
+      message: "Error in Registration",
       error,
     });
   }
 };
-
 //POST LOGIN
 export const loginController = async (req, res) => {
   try {
@@ -103,6 +106,7 @@ export const loginController = async (req, res) => {
         phone: user.phone,
         address: user.address,
         role: user.role,
+        pincode:user.pincode,
       },
       token,
     });
@@ -328,76 +332,103 @@ export const orderStatusController = async (req, res) => {
   }
 };
 
-export const updateOrderController = async (req, res) => {
+// In your orderController.js file
+export const addTrackingInfo = async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { deliveryCharges, codCharges, discount } = req.body;
+    const { company, id } = req.body;
 
-    // Debugging: Log the received parameters
-    console.log("Received orderId:", orderId);
-    console.log("Received body:", { deliveryCharges, codCharges, discount });
+    const updatedOrder = await orderModel.findByIdAndUpdate(
+      orderId,
+      { tracking: { company, id } },
+      { new: true }
+    );
 
-    // Find the order
-    const order = await orderModel.findById(orderId).populate("products");
-
-    if (!order) {
-      console.log("orderModel not found for orderId:", orderId);  // Debugging
+    if (!updatedOrder) {
       return res.status(404).send({
         success: false,
-        message: "orderModel not found",
+        message: "Order not found",
       });
     }
 
-    // Debugging: Log the retrieved order
-    console.log("Retrieved order:", order);
+    res.status(200).send({
+      success: true,
+      message: "Tracking information added successfully",
+      order: updatedOrder,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      success: false,
+      message: "Error adding tracking information",
+      error,
+    });
+  }
+};
 
-    // Calculate the total amount of products
-    const totalProductAmount = order.products.reduce((total, product) => {
-      const productTotal = product.price * product.quantity;
-      console.log(`Product ID: ${product._id}, Price: ${product.price}, Quantity: ${product.quantity}, Total: ${productTotal}`); // Debugging
-      return total + productTotal;
+export const updateOrderController = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { deliveryCharges, codCharges, discount, amount, products } = req.body;
+
+    console.log("Received orderId:", orderId);
+    console.log("Received body:", { deliveryCharges, codCharges, discount, amount, products });
+
+    const order = await orderModel.findById(orderId);
+
+    if (!order) {
+      console.log("Order not found for orderId:", orderId);
+      return res.status(404).send({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    // Update products
+    order.products = products;
+
+    // Calculate total product amount
+    const totalProductAmount = products.reduce((total, product) => {
+      return total + (Number(product.price) * Number(product.quantity));
     }, 0);
 
-    // Debugging: Log the calculated total product amount
     console.log("Total product amount:", totalProductAmount);
 
-    // Update the order with new charges and discount
-    order.deliveryCharges = deliveryCharges || 0;
-    order.codCharges = codCharges || 0;
-    order.discount = discount || 0;
+    // Update order fields
+    order.deliveryCharges = Number(deliveryCharges) || 0;
+    order.codCharges = Number(codCharges) || 0;
+    order.discount = Number(discount) || 0;
+    order.amount = Number(amount) || 0;
+    order.status = status || order.status;
 
-    // Debugging: Log updated charges and discount
     console.log("Updated deliveryCharges:", order.deliveryCharges);
     console.log("Updated codCharges:", order.codCharges);
     console.log("Updated discount:", order.discount);
+    console.log("Updated amount:", order.amount);
+    console.log("Updated status:", order.status);
 
-    // Calculate the new total amount
+    // Calculate new total amount
     const newTotalAmount = totalProductAmount + order.deliveryCharges + order.codCharges - order.discount;
 
-    // Debugging: Log the new total amount
     console.log("New total amount:", newTotalAmount);
 
-    // Calculate the amount pending
-    const amountPaid = order.payment.status === "Completed" ? order.payment.amount : 0;
-    order.amountPending = newTotalAmount - amountPaid;
+    // Calculate amount pending
+    order.amountPending = newTotalAmount - order.amount;
 
-    // Debugging: Log the amount paid and amount pending
-    console.log("Amount paid:", amountPaid);
     console.log("Amount pending:", order.amountPending);
 
     // Save the updated order
     await order.save();
 
-    // Debugging: Log the updated order after save
     console.log("Updated order saved:", order);
 
     res.status(200).send({
       success: true,
-      message: "orderModel updated successfully",
+      message: "Order updated successfully",
       order,
     });
   } catch (error) {
-    console.log("Error in updating order:", error); // Debugging
+    console.log("Error in updating order:", error);
     res.status(500).send({
       success: false,
       message: "Error in updating order",
@@ -406,3 +437,75 @@ export const updateOrderController = async (req, res) => {
   }
 };
 
+export const deleteProductFromOrderController = async (req, res) => {
+  try {
+    const { orderId, productId } = req.params;
+
+    // Log incoming request
+    console.log(`Attempting to delete product from order. Order ID: ${orderId}, Product ID: ${productId}`);
+
+    // Find the order by ID
+    const order = await orderModel.findById(orderId);
+
+    if (!order) {
+      console.log(`Order not found. ID: ${orderId}`);
+      return res.status(404).send({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    // Check if the product exists in the order
+    const productIndex = order.products.findIndex(
+      (product) => product._id.toString() === productId
+    );
+
+    if (productIndex === -1) {
+      console.log(`Product not found in order. Product ID: ${productId}`);
+      return res.status(404).send({
+        success: false,
+        message: "Product not found in the order",
+      });
+    }
+
+    // Remove the product from the order
+    const removedProduct = order.products[productIndex];
+    order.products.splice(productIndex, 1);
+
+    // Save the updated order
+    await order.save();
+
+    console.log(`Product removed successfully. Product ID: ${productId} from Order ID: ${orderId}`);
+
+    return res.status(200).send({
+      success: true,
+      message: "Product removed from order successfully",
+      removedProduct, // Send back the removed product details
+      order, // Updated order with the remaining products
+    });
+  } catch (error) {
+    console.error(`Error deleting product from order. Order ID: ${orderId}, Product ID: ${productId}`, error);
+    return res.status(500).send({
+      success: false,
+      message: "An error occurred while deleting the product from the order",
+      error: error.message,
+    });
+  }
+};
+
+// router.get("/order/:orderId/invoice", requireSignIn, async (req, res) => {
+//   try {
+//     const order = await orderModel.findById(req.params.orderId).populate('buyer').populate('products');
+//     if (!order) {
+//       return res.status(404).send('Order not found');
+//     }
+
+//     res.setHeader('Content-Type', 'application/pdf');
+//     res.setHeader('Content-Disposition', `attachment; filename=invoice-${order._id}.pdf`);
+
+//     generateInvoicePDF(order, res);
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).send('Error generating invoice');
+//   }
+// });

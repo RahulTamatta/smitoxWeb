@@ -36,6 +36,7 @@ const CreateProduct = () => {
   const [stock, setStock] = useState("");
   const [gst, setGst] = useState("");
   const [additionalUnit, setAdditionalUnit] = useState("Unit A");
+  
 
   useEffect(() => {
     getAllCategories();
@@ -87,7 +88,6 @@ const CreateProduct = () => {
     setSubcategory("");
     setBrand("");
 
-    // Filter subcategories based on the selected category
     const filteredSubcategories = subcategories.filter(
       (subcat) => subcat.category === value
     );
@@ -98,29 +98,26 @@ const CreateProduct = () => {
     setBrand(value);
   };
 
-
   const handleChange = (index, e) => {
     const { name, value } = e.target;
     const list = [...bulkProducts];
     list[index][name] = value;
-  
+
     if (name === "maximum" && index < list.length - 1) {
       list[index + 1].minimum = (parseInt(value) + 1).toString();
     }
-  
-    // Calculate net weight * quantity for both minimum and maximum
+
     const netWeight = parseFloat(unitSet);
     list[index].minNetWeight = (parseFloat(list[index].minimum) * netWeight).toFixed(2);
     list[index].maxNetWeight = (parseFloat(list[index].maximum) * netWeight).toFixed(2);
-  
+
     if (name === "discount_mrp") {
-   
       const setPrice = parseFloat(perPiecePrice);
       const totalPrice = setPrice;
-      const discountAmount = parseFloat(value); // Use the actual discount amount
+      const discountAmount = parseFloat(value);
       list[index].selling_price_set = (totalPrice - discountAmount).toFixed(2);
     }
-  
+
     setBulkProducts(list);
   };
 
@@ -148,6 +145,9 @@ const CreateProduct = () => {
     setBulkProducts(list);
   };
 
+
+ 
+
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
@@ -162,9 +162,7 @@ const CreateProduct = () => {
       productData.append("brand", brand);
       productData.append("hsn", hsn);
       productData.append("shipping", shipping ? "1" : "0");
-
       productData.append("bulkProducts", JSON.stringify(bulkProducts));
-
       productData.append("unit", unit);
       productData.append("unitSet", unitSet);
       productData.append("purchaseRate", purchaseRate);
@@ -175,7 +173,7 @@ const CreateProduct = () => {
       productData.append("stock", stock);
       productData.append("gst", gst);
       productData.append("additionalUnit", additionalUnit);
-
+    
       const { data } = await axios.post(
         "/api/v1/product/create-product",
         productData
@@ -193,13 +191,14 @@ const CreateProduct = () => {
       toast.error("Something went wrong while creating product");
     }
   };
+
   const handlePerPiecePriceChange = (e) => {
     const newPerPiecePrice = e.target.value;
     setPerPiecePrice(newPerPiecePrice);
-    // Calculate SET PRICE
     const newSetPrice = (parseFloat(newPerPiecePrice) * parseFloat(unitSet)).toFixed(2);
     setPrice(newSetPrice);
   };
+
   return (
     <Layout title={"Dashboard - Create Product"}>
       <div className="container-fluid m-3 p-3 dashboard">

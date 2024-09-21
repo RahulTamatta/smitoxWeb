@@ -1,54 +1,39 @@
 import mongoose from "mongoose";
 
-const userSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-    trim: true,
+const userSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    phone: { type: String, required: true },
+    address: { type: String, required: true },
+    pincode: { type: String, required: true },
+    role: { type: Number, default: 0 },
+    status: { 
+      type: String, 
+      default: "active", 
+      enum: ["active", "inactive", "pending"] // Added "pending" to allowed values
+    },
+    live_product: { type: Boolean, default: true },
+    order_type: { 
+      type: String, 
+      default: "all", 
+      enum: ["all", "cod", "online", "0"] // Added "0" to allowed values
+    },
+    products: [{ type: mongoose.ObjectId, ref: "Product" }],
+    wishlist: [{ type: mongoose.ObjectId, ref: "Product" }],
+    cart: [{
+      product: { type: mongoose.ObjectId, ref: "Product" },
+      quantity: Number,
+      bulkProductDetails: {
+        minimum: Number,
+        maximum: Number,
+        selling_price_set: Number,
+      },
+      totalPrice: Number,
+    }],
   },
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  password: {
-    type: String,
-    required: true,
-  },
-  phone: {
-    type: String,
-    required: true,
-  },
-  address: {
-    type: {},
-    required: true,
-  },
-  answer: {
-    type: String,
-    required: true,
-  },
-  role: {
-    type: Number,
-    default: 0,
-  },
-  status: {
-    type: String,
-    enum: ['active', 'pending', 'blocked'],
-    default: 'pending'
-  },
-  b_form_status: {
-    type: Number,
-    default: 0
-  },
-  live_product: {
-    type: Boolean,
-    default: false
-  },
-  order_type: {
-    type: String,
-    enum: ['0', '1', '2'],
-    default: '0'
-  },
-}, { timestamps: true });
+  { timestamps: true }
+);
 
 export default mongoose.model("User", userSchema);

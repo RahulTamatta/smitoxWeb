@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-
 const { Schema } = mongoose;
 
 const productSchema = new Schema(
@@ -32,12 +31,10 @@ const productSchema = new Schema(
     },
     brand: {
       type: Schema.Types.ObjectId,
-      ref: "Brand",
-      
+      ref: "Brands",
     },
     quantity: {
       type: Number,
-      // required: flase,
     },
     stock: {
       type: Number,
@@ -103,13 +100,7 @@ const productSchema = new Schema(
     },
     userId: {
       type: String,
-      // required: flase,
     },
-    // skuCode: {
-    //   type: String,
-    //   // required: false,
-    //   unique: flase,
-    // },
     images: [{
       type: String
     }],
@@ -125,6 +116,9 @@ const productSchema = new Schema(
       setName: String,
       price: Number,
       quantity: Number
+    }],
+    productBulletPoints: [{
+      type: String
     }],
   },
   { timestamps: true }

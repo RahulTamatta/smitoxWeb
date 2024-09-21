@@ -178,7 +178,7 @@ export const getSingleProductController = async (req, res) => {
     const product = await productModel
       .findOne({ slug: req.params.slug })
       .select("-photo")
-      .populate("category");
+      .populate("category").populate("brand");
     res.status(200).send({
       success: true,
       message: "Single Product Fetched",
@@ -362,7 +362,7 @@ export const productCountController = async (req, res) => {
 // product list base on page
 export const productListController = async (req, res) => {
   try {
-    const perPage = 6;
+    const perPage = 10;
     const page = req.params.page ? req.params.page : 1;
     const products = await productModel
       .find({})
@@ -632,4 +632,19 @@ export const processPaymentController = async (req, res) => {
   }
 };
 
-
+export const getProductPhoto = async (req, res) => {
+  try {
+    const product = await productModel.findById(req.params.pid).select("photo");
+    if (product.photo.data) {
+      res.set("Content-type", product.photo.contentType);
+      return res.status(200).send(product.photo.data);
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      success: false,
+      message: "Error while getting photo",
+      error,
+    });
+  }
+};

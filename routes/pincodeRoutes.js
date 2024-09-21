@@ -6,7 +6,6 @@ import {
   getAllPincodesController,
   getSinglePincodeController,
   deletePincodeController,
-  // searchPincodesController
 } from "./../controllers/pincodeController.js";
 
 const router = express.Router();
@@ -40,7 +39,5 @@ router.delete(
   isAdmin,
   deletePincodeController
 );
-// router.get("/search-pincodes",  requireSignIn,
-// isAdmin, searchPincodesController);
 
 export default router;

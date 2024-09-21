@@ -2,6 +2,10 @@ import mongoose from "mongoose";
 
 const orderSchema = new mongoose.Schema(
   {
+    buyer: {
+      type: mongoose.ObjectId,
+      ref: "User",
+    },
     products: [
       {
         type: mongoose.ObjectId,
@@ -20,14 +24,11 @@ const orderSchema = new mongoose.Schema(
         enum: ["Pending", "Completed"],
         default: "Pending",
       },
-      amount: {
-        type: Number,
-        default: 0,
-      },
+  
     },
-    buyer: {
-      type: mongoose.ObjectId,
-      ref: "User",
+    amount: {
+      type: Number,
+      default: 0,
     },
     status: {
       type: String,
@@ -49,6 +50,10 @@ const orderSchema = new mongoose.Schema(
     amountPending: {
       type: Number,
       default: 0,
+    },
+    tracking: {
+      company: String,
+      id: String,
     },
   },
   { timestamps: true }

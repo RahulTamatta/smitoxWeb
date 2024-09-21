@@ -25,6 +25,7 @@ const AdminMenu = () => {
               <Dropdown.Item as={NavLink} to="/dashboard/admin/pincodes">Pincode</Dropdown.Item>
               <Dropdown.Item as={NavLink} to="/dashboard/admin/offer">Offers</Dropdown.Item>
               <Dropdown.Item as={NavLink} to="/dashboard/admin/units">Units</Dropdown.Item>
+              <Dropdown.Item as={NavLink} to="/dashboard/admin/minimumOrder">Minimum order</Dropdown.Item>
               <Dropdown.Item as={NavLink} to="/dashboard/admin/productforyou">App Home</Dropdown.Item>
             </Dropdown.Menu>
           </Dropdown>

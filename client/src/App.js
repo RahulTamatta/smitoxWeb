@@ -14,6 +14,7 @@ import AdminDashboard from "./pages/Admin/AdminDashboard";
 import CreateCategory from "./pages/Admin/CreateCategory";
 import SubcategoryList from "./pages/Admin/subCategory";
 import BrandList from "./pages/Admin/brandList";
+import MinimumOrder from "./pages/Admin/minimumOrder.js";
 import CreateProduct from "./pages/Admin/CreateProduct";
 import Users from "./pages/Admin/Users";
 import UsersLists from "./pages/Admin/userCartLists";
@@ -26,7 +27,7 @@ import ProductDetails from "./pages/ProductDetails";
 import Categories from "./pages/Categories";
 import CategoryProduct from "./pages/CategoryProduct";
 import CartPage from "./pages/CartPage";
-import AdminOrders from "./pages/Admin/AdminOrders";
+import AdminOrders from "./pages/Admin/Admin order/AdminOrders.js";
 import PincodeList from "./pages/Admin/PinCode.js";
 import Terms from "./pages/TermsofUse";
 import BannerManagement from "./pages/Admin/bannerManagement";
@@ -52,6 +53,8 @@ function App() {
           <Route path="admin/create-category" element={<CreateCategory />} />
           <Route path="admin/create-subcategory" element={<SubcategoryList />} />
           <Route path="admin/brand" element={<BrandList />} />
+          <Route path="admin/minimumOrder" element={<MinimumOrder />} />
+          
           <Route path="admin/create-product" element={<CreateProduct />} />
           <Route path="admin/create-banner" element={<BannerManagement />} />
           <Route path="admin/product/:slug" element={<UpdateProduct />} />
