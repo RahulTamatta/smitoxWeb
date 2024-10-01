@@ -3,6 +3,7 @@ import productModel from "../models/productModel.js";
 import Cart from '../models/cartModel.js';
 import Product from '../models/productModel.js';
 import User from '../models/userModel.js';
+import Wishlist from '../models/wishlistModel.js';
 
 
 export const getUsers = async (req, res) => {
@@ -67,43 +68,64 @@ export const updateOrderType = async (req, res) => {
   }
 };
 
+
+
+// Get Wishlist for a User
+
+
+export const getWishlist = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Find the wishlist for the user and populate the products
+    const wishlist = await Wishlist.findOne({ user: userId }).populate('products.product');
+    
+    if (!wishlist) {
+      return res.status(404).json({ status: 'error', message: 'Wishlist not found' });
+    }
+    
+    res.json({ status: 'success', wishlist: wishlist.products }); // Return the populated products
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
 export const addToWishlist = async (req, res) => {
   try {
-    const { userId, productId } = req.body;
-    const user = await userModel.findById(userId);
-    const productExists = user.wishlist.includes(productId);
-    if (productExists) {
-      return res.status(400).json({ status: 'error', message: 'Product already in wishlist' });
-    }
-    user.wishlist.push(productId);
-    await user.save();
-    res.json({ status: 'success', message: 'Product added to wishlist' });
+    const { userId } = req.params; // User ID from the request params
+    const { productId } = req.body; // Product ID from the request body
+
+    const wishlist = await Wishlist.findOneAndUpdate(
+      { user: userId },
+      { $addToSet: { products: { product: productId } } }, // Use 'products' instead of 'items'
+      { new: true, upsert: true } // upsert: true will create a new wishlist if it doesn't exist
+    )
+      .populate('products.product') // Correct path for populating product details
+      .populate('user'); // Optionally populate the user details
+
+    res.json({ status: 'success', wishlist });
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });
   }
 };
 
+// Remove Product from Wishlist
 export const removeFromWishlist = async (req, res) => {
   try {
-    const { userId, productId } = req.body;
-    const user = await userModel.findById(userId);
-    user.wishlist = user.wishlist.filter(id => id.toString() !== productId);
-    await user.save();
-    res.json({ status: 'success', message: 'Product removed from wishlist' });
-  } catch (error) {
-    res.status(500).json({ status: 'error', message: error.message });
-  }
-};
-export const getWishlist = async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const user = await userModel.findById(userId).populate('wishlist');
-    
-    if (!user) {
-      return res.status(404).json({ status: 'error', message: 'User not found' });
+    const { userId, productId } = req.params;
+
+    const wishlist = await Wishlist.findOneAndUpdate(
+      { user: userId },
+      { $pull: { products: { product: productId } } }, // Use 'products' instead of 'items'
+      { new: true }
+    )
+      .populate('products.product') // Correct path for populating product details
+      .populate('user'); // Optionally populate the user details
+
+    if (!wishlist) {
+      return res.status(404).json({ status: 'fail', message: "Wishlist not found" });
     }
-    
-    res.json({ status: 'success', wishlist: user.wishlist });
+
+    res.json({ status: 'success', wishlist });
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });
   }

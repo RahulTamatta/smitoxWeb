@@ -17,30 +17,29 @@ const ProductDetails = () => {
   const [totalPrice, setTotalPrice] = useState(0);
   const [isPincodeAvailable, setIsPincodeAvailable] = useState(false);
   const [isInWishlist, setIsInWishlist] = useState(false);
-
+  const [cart, setCart] = useCart();
+  
   useEffect(() => {
+    window.scrollTo(0, 0);
     if (params?.slug) getProduct();
     getProductsForYou();
     if (auth?.user?.pincode) {
       checkPincode(auth.user.pincode);
     }
-    checkWishlistStatus();
   }, [params?.slug, auth?.user?.pincode]);
 
   useEffect(() => {
-    if (product.bulkProducts) {
-      const applicableBulk = getApplicableBulkProduct();
-      setSelectedBulk(applicableBulk);
-      calculateTotalPrice(applicableBulk);
+    if (product._id && auth?.user?._id) {
+      checkWishlistStatus();
     }
-  }, [selectedQuantity, product]);
+  }, [product._id, auth?.user?._id]);
 
   const getProduct = async () => {
     try {
       const { data } = await axios.get(`/api/v1/product/get-product/${params.slug}`);
       setProduct(data?.product);
     } catch (error) {
-      console.log(error);
+      console.error(error);
       toast.error("Error fetching product details");
     }
   };
@@ -52,33 +51,31 @@ const ProductDetails = () => {
         setProductsForYou(data.banners || []);
       }
     } catch (error) {
-      console.log(error);
+      console.error(error);
       toast.error("Failed to fetch products for you");
     }
   };
 
-  const handleQuantityChange = (increment) => {
-    const newQuantity = selectedQuantity + (increment ? 1 : -1) * parseInt(product.unitSet);
-    setSelectedQuantity(Math.max(0, newQuantity));
-  };
-
-  const getApplicableBulkProduct = () => {
-    if (!product.bulkProducts) return null;
-    return product.bulkProducts.reduce((acc, curr) => {
-      if (selectedQuantity >= curr.minimum * product.unitSet && 
-          (!curr.maximum || selectedQuantity <= curr.maximum * product.unitSet) &&
-          (!acc || curr.minimum > acc.minimum)) {
-        return curr;
+  const getApplicableBulkProduct = (quantity) => {
+    if (!product.bulkProducts || product.bulkProducts.length === 0) return null;
+    
+    const sortedBulkProducts = [...product.bulkProducts].sort((a, b) => b.minimum - a.minimum);
+    
+    for (let i = 0; i < sortedBulkProducts.length; i++) {
+      const bulk = sortedBulkProducts[i];
+      if (quantity >= bulk.minimum * product.unitSet) {
+        return bulk;
       }
-      return acc;
-    }, null);
+    }
+    
+    return sortedBulkProducts[sortedBulkProducts.length - 1]; // Return the last bulk pricing if quantity exceeds all tiers
   };
 
-  const calculateTotalPrice = (bulk) => {
+  const calculateTotalPrice = (bulk, quantity) => {
     if (bulk) {
-      setTotalPrice(selectedQuantity * parseFloat(bulk.selling_price_set));
+      setTotalPrice(quantity * parseFloat(bulk.selling_price_set));
     } else {
-      setTotalPrice(selectedQuantity * parseFloat(product.price));
+      setTotalPrice(quantity * parseFloat(product.price));
     }
   };
 
@@ -90,13 +87,17 @@ const ProductDetails = () => {
 
     if (selectedBulk) {
       try {
-        await axios.post(`/api/v1/carts/users/${auth.user._id}/cart`, {
+        const response = await axios.post(`/api/v1/carts/users/${auth.user._id}/cart`, {
           productId: product._id,
           quantity: selectedQuantity,
+          price: parseFloat(selectedBulk.selling_price_set),
           bulkProductDetails: selectedBulk,
-          totalPrice: totalPrice
         });
-        toast.success("Item added to cart");
+
+        if (response.data.status === "success") {
+          setCart(response.data.cart);
+          toast.success("Item added to cart");
+        }
       } catch (error) {
         console.error(error);
         toast.error("Error adding item to cart");
@@ -110,7 +111,7 @@ const ProductDetails = () => {
     try {
       const { data } = await axios.get("/api/v1/pincodes/get-pincodes");
       if (data.success) {
-        const availablePincodes = data.pincodes.map(pin => pin.code);
+        const availablePincodes = data.pincodes.map((pin) => pin.code);
         if (availablePincodes.includes(pincode.toString())) {
           setIsPincodeAvailable(true);
           toast.success("Delivery available for your pincode");
@@ -129,15 +130,14 @@ const ProductDetails = () => {
     }
   };
 
-  const checkWishlistStatus = async () => {
-    if (auth.user && product._id) {
-      try {
-        const { data } = await axios.get(`/api/v1/user/${auth.user._id}/wishlist`);
-        setIsInWishlist(data.wishlist.some(item => item._id === product._id));
-      } catch (error) {
-        console.error("Error checking wishlist status:", error);
-      }
-    }
+  const handleQuantityChange = (increment) => {
+    const newQuantity = selectedQuantity + (increment ? 1 : -1) * parseInt(product.unitSet);
+    const updatedQuantity = Math.max(0, newQuantity);
+    setSelectedQuantity(updatedQuantity);
+
+    const bulk = getApplicableBulkProduct(updatedQuantity);
+    setSelectedBulk(bulk);
+    calculateTotalPrice(bulk, updatedQuantity);
   };
 
   const toggleWishlist = async () => {
@@ -145,14 +145,16 @@ const ProductDetails = () => {
       toast.error("Please log in to manage your wishlist");
       return;
     }
-
+  
     try {
       if (isInWishlist) {
-        await axios.delete(`/api/v1/user/${auth.user._id}/wishlist`, { data: { productId: product._id } });
+        await axios.delete(`/api/v1/carts/users/${auth.user._id}/wishlist/${product._id}`);
         setIsInWishlist(false);
         toast.success("Removed from wishlist");
       } else {
-        await axios.post(`/api/v1/user/${auth.user._id}/wishlist`, { productId: product._id });
+        await axios.post(`/api/v1/carts/users/${auth.user._id}/wishlist`, { 
+          productId: product._id 
+        });
         setIsInWishlist(true);
         toast.success("Added to wishlist");
       }
@@ -162,7 +164,21 @@ const ProductDetails = () => {
     }
   };
 
-  // Styles
+  const checkWishlistStatus = async () => {
+    if (!auth.user) return;
+
+    try {
+      const { data } = await axios.get(`/api/v1/carts/users/${auth.user._id}/wishlist/${product._id}`);
+      if (data.status === "success") {
+        setIsInWishlist(true);
+      } else {
+        setIsInWishlist(false);
+      }
+    } catch (error) {
+      console.error(error);
+      setIsInWishlist(false);
+    }
+  };
   const containerStyle = {
     maxWidth: '1200px',
     margin: '0 auto',
@@ -287,6 +303,7 @@ const ProductDetails = () => {
     justifyContent: 'space-around',
   };
 
+
   return (
     <Layout>
       <div style={containerStyle}>
@@ -297,6 +314,44 @@ const ProductDetails = () => {
               alt={product.name}
               style={{ width: '100%', height: 'auto', borderRadius: '8px' }}
             />
+            <div>
+              <h3 style={{ ...headingStyle, fontSize: '20px', marginTop: '20px' }}>Bulk Pricing</h3>
+              <table style={tableStyle}>
+                <thead>
+                  <tr>
+                    <th style={thTdStyle}>Minimum Qty</th>
+                    <th style={thTdStyle}>Maximum Qty</th>
+                    <th style={thTdStyle}>Price per set</th>
+                    <th style={thTdStyle}>Total Price</th>
+                    <th style={thTdStyle}>Selected</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {product.bulkProducts && product.bulkProducts.map((bulk, index) => {
+                    const minQty = bulk.minimum * product.unitSet;
+                    const maxQty = bulk.maximum ? bulk.maximum * product.unitSet : 'No limit';
+                    const isSelected = selectedBulk && selectedBulk._id === bulk._id;
+                    return (
+                      <tr key={index} style={{ backgroundColor: isSelected ? '#e6f7ff' : 'transparent' }}>
+                        <td style={thTdStyle}>{minQty}</td>
+                        <td style={thTdStyle}>{maxQty}</td>
+                        <td style={thTdStyle}>₹{parseFloat(bulk.selling_price_set).toFixed(2)}</td>
+                        <td style={thTdStyle}>
+                          {isSelected ? `₹${totalPrice.toFixed(2)}` : '-'}
+                        </td>
+                        <td style={thTdStyle}>
+                          <input 
+                            type="checkbox" 
+                            checked={isSelected}
+                            readOnly
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
           <div style={infoStyle}>
             <h1 style={headingStyle}>{product.name}</h1>
@@ -345,46 +400,6 @@ const ProductDetails = () => {
             >
               {isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
             </button>
-
-            <div>
-              <h3 style={{ ...headingStyle, fontSize: '20px', marginTop: '20px' }}>Bulk Pricing</h3>
-              <table style={tableStyle}>
-                <thead>
-                  <tr>
-                    <th style={thTdStyle}>Minimum Qty</th>
-                    <th style={thTdStyle}>Maximum Qty</th>
-                    <th style={thTdStyle}>Price per set</th>
-                    <th style={thTdStyle}>Total Price</th>
-                    <th style={thTdStyle}>Selected</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {product.bulkProducts && product.bulkProducts.map((bulk, index) => {
-                    const minQty = bulk.minimum * product.unitSet;
-                    const maxQty = bulk.maximum ? bulk.maximum * product.unitSet : 'No limit';
-                    const isSelected = selectedQuantity >= minQty && 
-                                       (maxQty === 'No limit' || selectedQuantity <= maxQty);
-                    return (
-                      <tr key={index} style={{ backgroundColor: isSelected ? '#e6f7ff' : 'transparent' }}>
-                        <td style={thTdStyle}>{minQty}</td>
-                        <td style={thTdStyle}>{maxQty}</td>
-                        <td style={thTdStyle}>₹{parseFloat(bulk.selling_price_set).toFixed(2)}</td>
-                        <td style={thTdStyle}>
-                          {isSelected ? `₹${(selectedQuantity * parseFloat(bulk.selling_price_set)).toFixed(2)}` : '-'}
-                        </td>
-                        <td style={thTdStyle}>
-                          <input 
-                            type="checkbox" 
-                            checked={isSelected}
-                            readOnly
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
           </div>
         </div>
         <h2 style={{ ...headingStyle, fontSize: '24px', marginTop: '40px' }}>Products For You</h2>

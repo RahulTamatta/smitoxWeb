@@ -9,13 +9,14 @@ import axios from "axios";
 const Header = () => {
   const [auth, setAuth] = useAuth();
   const [cartCount, setCartCount] = useState(0);
+  const [wishlistCount, setWishlistCount] = useState(0);
 
   // Fetch cart count from the server
   const fetchCartCount = async () => {
     try {
       if (auth?.user) {
         const { data } = await axios.get(`/api/v1/carts/users/${auth.user._id}/cart`);
-        setCartCount(data.cart.length);  // Assuming cart is an array
+        setCartCount(data.cart.length);
       }
     } catch (error) {
       console.log(error);
@@ -23,8 +24,22 @@ const Header = () => {
     }
   };
 
+  // Fetch wishlist count from the server
+  const fetchWishlistCount = async () => {
+    try {
+      if (auth?.user) {
+        const { data } = await axios.get(`/api/v1/user/${auth.user._id}/wishlist`);
+        setWishlistCount(data.wishlist.length);
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Error fetching wishlist count");
+    }
+  };
+
   useEffect(() => {
     fetchCartCount();
+    fetchWishlistCount();
   }, [auth?.user]);
 
   const handleLogout = () => {
@@ -113,6 +128,13 @@ const Header = () => {
                   </li>
                 </>
               )}
+              <li className="nav-item">
+                <NavLink to="/wishlist" className="nav-link">
+                  <Badge count={wishlistCount} showZero offset={[10, -5]}>
+                    Wishlist
+                  </Badge>
+                </NavLink>
+              </li>
               <li className="nav-item">
                 <NavLink to="/cart" className="nav-link">
                   <Badge count={cartCount} showZero offset={[10, -5]}>

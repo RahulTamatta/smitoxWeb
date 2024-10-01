@@ -7,7 +7,7 @@ import {
   updateProfileController,
   updateOrderController,
   getOrdersController,
-  getAllOrdersController,
+  getAllOrdersController,sendOTPController,verifyOTPAndLoginController,
   addProductToOrderController,
   orderStatusController,
   deleteProductFromOrderController,addTrackingInfo // Import your delete controller here
@@ -25,6 +25,9 @@ const router = express.Router();
 router.post("/register", registerController);
 
 //LOGIN || POST
+router.post("/send-otp", sendOTPController);
+router.post("/verify-otp", verifyOTPAndLoginController);
+
 router.post("/login", loginController);
 
 //Forgot Password || POST

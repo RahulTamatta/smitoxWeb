@@ -6,17 +6,9 @@ const subCategorySchema = new mongoose.Schema({
     ref: 'Category',
     required: true,
   },
-  
   name: {
     type: String,
     required: true,
-  },
-  isActive: {
-    type: Boolean,
-    default: true
-  },
-  photo: {
-    type: String,  // This will store the base64 string
   },
   slug: {
     type: String,

@@ -1,55 +1,164 @@
 import userModel from "../models/userModel.js";
 import orderModel from "../models/orderModel.js";
 import productModel from "../models/productModel.js";
-
 import { comparePassword, hashPassword } from "./../helpers/authHelper.js";
 import JWT from "jsonwebtoken";
+import axios from "axios";
+
+
+
+export const sendOTPController = async (req, res) => {
+  try {
+    const { phoneNumber } = req.body;
+    const API_KEY = process.env.TWO_FACTOR_API_KEY;
+    // Check if API_KEY is defined
+    if (!API_KEY) {
+      throw new Error('TWO_FACTOR_API_KEY is not defined in the environment variables');
+    }
+
+    // Updated API endpoint for SMS-based OTP
+    const response = await axios.get(`https://2factor.in/API/V1/${API_KEY}/SMS/${phoneNumber}/AUTOGEN/OTP%20For%20Verification`);
+
+    if (response.data.Status === "Success") {
+      res.status(200).json({
+        success: true,
+        message: "SMS OTP sent successfully",
+        sessionId: response.data.Details,
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: "Failed to send SMS OTP",
+      });
+    }
+  } catch (error) {
+    console.error('Error in sendOTPController:', error.message);
+    res.status(500).json({
+      success: false,
+      message: "Error in sending SMS OTP",
+      error: error.message,
+    });
+  }
+};
+
+
+export const verifyOTPAndLoginController = async (req, res) => {
+  try {
+    const { sessionId, otp, phoneNumber } = req.body;
+    const API_KEY = process.env.TWO_FACTOR_API_KEY;
+
+    // Validate phone number
+    if (!phoneNumber || typeof phoneNumber !== 'string' || phoneNumber.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid phone number",
+      });
+    }
+
+    // Check if API_KEY is defined
+    if (!API_KEY) {
+      return res.status(500).json({
+        success: false,
+        message: 'TWO_FACTOR_API_KEY is not defined in the environment variables',
+      });
+    }
+
+    // Verify OTP
+    const verifyResponse = await axios.get(`https://2factor.in/API/V1/${API_KEY}/SMS/VERIFY/${sessionId}/${otp}`);
+
+    if (verifyResponse.data.Status === "Success") {
+      // OTP verified, fetch user from database
+   const   phone=phoneNumber.trim();
+
+      const user = await userModel.findOne({ phone: phoneNumber.trim() });
+      console.log("phonee",phone);
+      console.log("phonee2",{phone,phoneNumber});
+      if (!user) {
+        // If user doesn't exist, return a message for registration
+        return res.status(404).json({
+          success: false,
+          message: "User does not exist, please register",
+        });
+      }
+
+      // Proceed with login
+      const token = JWT.sign({ _id: user._id }, process.env.JWT_SECRET, {
+        expiresIn: "7d",
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "Login successful",
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          phoneNumber: user.phoneNumber,
+          address: user.address,
+          role: user.role,
+          pincode: user.pincode,
+          status: user.status,
+        },
+        token,
+      });
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid OTP",
+      });
+    }
+  } catch (error) {
+    console.error('Error in verifyOTPAndLoginController:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Error in login",
+      error: error.message,
+    });
+  }
+};
 
 export const registerController = async (req, res) => {
   try {
-    const { name, email, password, phone, address, pincode, answer } = req.body;
-    //validations
+    const { name, email, phone, address, pincode, answer } = req.body;
+
+    // Validations
     if (!name) {
-      return res.send({ error: "Name is Required" });
+      return res.status(400).send({ error: "Name is Required" });
     }
     if (!email) {
-      return res.send({ message: "Email is Required" });
-    }
-    if (!password) {
-      return res.send({ message: "Password is Required" });
+      return res.status(400).send({ message: "Email is Required" });
     }
     if (!phone) {
-      return res.send({ message: "Phone no is Required" });
+      return res.status(400).send({ message: "Phone no is Required" });
     }
     if (!address) {
-      return res.send({ message: "Address is Required" });
+      return res.status(400).send({ message: "Address is Required" });
     }
     if (!pincode) {
-      return res.send({ message: "PIN Code is Required" });
+      return res.status(400).send({ message: "PIN Code is Required" });
     }
     if (!answer) {
-      return res.send({ message: "Answer is Required" });
+      return res.status(400).send({ message: "Answer is Required" });
     }
-    //check user
+
+    // Check user
     const existingUser = await userModel.findOne({ email });
-    //existing user
     if (existingUser) {
       return res.status(200).send({
         success: false,
         message: "Already Registered, please login",
       });
     }
-    //register user
-    const hashedPassword = await hashPassword(password);
-    //save
+
+    // Register user without password
     const user = await new userModel({
       name,
       email,
       phone,
       address,
       pincode,
-      password: hashedPassword,
       answer,
+      status: 'pending' // Or any default status you want
     }).save();
 
     res.status(201).send({
@@ -58,7 +167,7 @@ export const registerController = async (req, res) => {
       user,
     });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).send({
       success: false,
       message: "Error in Registration",
@@ -66,25 +175,29 @@ export const registerController = async (req, res) => {
     });
   }
 };
-//POST LOGIN
+
+// POST LOGIN
 export const loginController = async (req, res) => {
   try {
     const { email, password } = req.body;
-    //validation
+
+    // Validation
     if (!email || !password) {
       return res.status(404).send({
         success: false,
         message: "Invalid email or password",
       });
     }
-    //check user
+
+    // Check user
     const user = await userModel.findOne({ email });
     if (!user) {
       return res.status(404).send({
         success: false,
-        message: "Email is not registerd",
+        message: "Email is not registered",
       });
     }
+
     const match = await comparePassword(password, user.password);
     if (!match) {
       return res.status(200).send({
@@ -92,13 +205,15 @@ export const loginController = async (req, res) => {
         message: "Invalid Password",
       });
     }
-    //token
+
+    // Token
     const token = await JWT.sign({ _id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
+
     res.status(200).send({
       success: true,
-      message: "login successfully",
+      message: "Login successfully",
       user: {
         _id: user._id,
         name: user.name,
@@ -106,12 +221,12 @@ export const loginController = async (req, res) => {
         phone: user.phone,
         address: user.address,
         role: user.role,
-        pincode:user.pincode,
+        pincode: user.pincode,
       },
       token,
     });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).send({
       success: false,
       message: "Error in login",
@@ -184,7 +299,7 @@ export const updateProfileController = async (req, res) => {
       {
         name: name || user.name,
         password: hashedPassword || user.password,
-        phone: phone || user.phone,
+        phoneNumber: phoneNumber || user.phoneNumber,
         address: address || user.address,
       },
       { new: true }
@@ -493,19 +608,3 @@ export const deleteProductFromOrderController = async (req, res) => {
   }
 };
 
-// router.get("/order/:orderId/invoice", requireSignIn, async (req, res) => {
-//   try {
-//     const order = await orderModel.findById(req.params.orderId).populate('buyer').populate('products');
-//     if (!order) {
-//       return res.status(404).send('Order not found');
-//     }
-
-//     res.setHeader('Content-Type', 'application/pdf');
-//     res.setHeader('Content-Disposition', `attachment; filename=invoice-${order._id}.pdf`);
-
-//     generateInvoicePDF(order, res);
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).send('Error generating invoice');
-//   }
-// });

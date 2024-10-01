@@ -26,12 +26,13 @@ import Search from "./pages/Search";
 import ProductDetails from "./pages/ProductDetails";
 import Categories from "./pages/Categories";
 import CategoryProduct from "./pages/CategoryProduct";
-import CartPage from "./pages/CartPage";
+import CartPage from "./pages/cart/CartPage.js";
 import AdminOrders from "./pages/Admin/Admin order/AdminOrders.js";
 import PincodeList from "./pages/Admin/PinCode.js";
 import Terms from "./pages/TermsofUse";
 import BannerManagement from "./pages/Admin/bannerManagement";
 import ProductForYou from "./pages/Admin/ProductForYou.js";
+import WishlistPage from "./pages/wishlists.js";
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
        <Route path="/product/:slug" element={<ProductDetails />} />
         <Route path="/categories" element={<Categories />} />
         <Route path="/cart" element={<CartPage />} />
+      
         <Route path="/category/:slug" element={<CategoryProduct />} />
         <Route path="/search" element={<Search />} />
         <Route path="/dashboard" element={<PrivateRoute />}>
@@ -73,6 +75,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/wishlist" element={<WishlistPage />} />
         <Route path="/policy" element={<Policy />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="*" element={<Pagenotfound />} />

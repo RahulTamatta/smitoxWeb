@@ -44,6 +44,11 @@ const productSchema = new Schema(
       data: Buffer,
       contentType: String,
     },
+       images: [{
+      driveId: String,
+      webViewLink: String,
+      thumbnailLink: String
+    }],
     shipping: {
       type: Boolean,
     },
@@ -120,6 +125,11 @@ const productSchema = new Schema(
     productBulletPoints: [{
       type: String
     }],
+    sku: {
+      type: String,
+      unique: true,
+      required: true,
+    },
   },
   { timestamps: true }
 );
@@ -134,17 +144,17 @@ productSchema.virtual('imageUrls').get(function() {
 
 // Method to check if SKU exists
 productSchema.statics.checkSKU = async function(sku) {
-  const count = await this.countDocuments({ skuCode: sku });
+  const count = await this.countDocuments({ sku: sku });
   return count > 0;
 };
 
 // Method to get the last SKU for a specific user
 productSchema.statics.getLastSKU = async function(userId) {
   const product = await this.findOne({ userId: userId })
-    .sort({ skuCode: -1 })
-    .select('skuCode')
+    .sort({ sku: -1 })
+    .select('sku')
     .lean();
-  return product ? product.skuCode : null;
+  return product ? product.sku : null;
 };
 
 export default mongoose.model("Product", productSchema);

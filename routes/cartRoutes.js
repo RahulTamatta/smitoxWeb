@@ -25,10 +25,13 @@ router.put('/users/:id/live-product', toggleLiveProduct);
 router.put('/users/:id/order-type', updateOrderType);
 
 // New wishlist routes
-router.get('/users/:userId/wishlist', getWishlist);
-router.post('/users/:userId/wishlist', addToWishlist);
-router.delete('/users/:userId/wishlist', removeFromWishlist);
+router.get("/users/:userId/wishlist", getWishlist);
 
+// Add a product to a user's wishlist
+router.post("/users/:userId/wishlist", addToWishlist);
+
+// Remove a product from a user's wishlist
+router.delete("/users/:userId/wishlist/:productId", removeFromWishlist);
 // New cart routes
 router.get('/users/:userId/cart', getCart);
 router.post('/users/:userId/cart', addToCart);

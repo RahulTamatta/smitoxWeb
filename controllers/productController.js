@@ -43,13 +43,6 @@ export const createProductController = async (req, res) => {
     } = req.fields;
     const { photo } = req.files;
 
-    // Validation
-    // if (!name || !description) {
-    //   return res
-    //     .status(400)
-    //     .send({ error: "All required fields must be provided." });
-    // }
-
     // Handle photo size validation if provided
     if (photo && photo.size > 1000000) {
       return res

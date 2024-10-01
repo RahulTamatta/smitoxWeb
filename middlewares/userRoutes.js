@@ -4,32 +4,71 @@ const Person = require('../models/person');
 const {jwtAuthMiddleware, generateToken} = require('../jwt');
 
 // POST route to add a person
-router.post('/signup', async (req, res) =>{
-    try{
-        const data = req.body // Assuming the request body contains the person data
+// Helper function to format phone number
+const formatPhoneNumber = (phone) => {
+    // Remove any non-digit characters
+    const digits = phone.replace(/\D/g, '');
+    // Ensure it starts with the country code (assuming India +91)
+    return digits.startsWith('91') ? `+${digits}` : `+91${digits}`;
+};
 
-        // Create a new Person document using the Mongoose model
-        const newPerson = new Person(data);
+// POST route to initiate signup
+router.post('/signup', async (req, res) => {
+    try {
+        const data = req.body;
+        console.log('Received signup data:', data);
 
-        // Save the new person to the database
-        const response = await newPerson.save();
-        console.log('data saved');
-
-        const payload = {
-            id: response.id,
-            username: response.username
+        // Check if user already exists
+        const existingUser = await Person.findOne({ username: data.username });
+        if (existingUser) {
+            return res.status(400).json({ error: 'Username already exists' });
         }
-        console.log(JSON.stringify(payload));
-        const token = generateToken(payload);
-        console.log("Token is : ", token);
 
-        res.status(200).json({response: response, token: token});
+        // Format phone number
+        const phoneNumber = formatPhoneNumber(data.phone);
+        console.log('Formatted phone number:', phoneNumber);
+
+        // Log the API key (be careful with this in production)
+        console.log('Using API Key:', API_KEY);
+
+        // Send OTP
+        const url = `https://2factor.in/API/V1/${API_KEY}/SMS/${phoneNumber}/AUTOGEN`;
+        console.log('Sending request to:', url);
+
+        const response = await axios.get(url, {
+            validateStatus: function (status) {
+                return status >= 200 && status < 500; // Resolve for any status code less than 500
+            }
+        });
+
+        console.log('2Factor API Response:', response.data);
+        
+        if (response.data.Status === "Success") {
+            // Store user data and session ID temporarily
+            req.session.pendingUser = data;
+            req.session.otpSessionId = response.data.Details;
+            
+            res.status(200).json({ message: 'OTP sent successfully. Please verify to complete signup.' });
+        } else {
+            console.error('2Factor API Error:', response.data);
+            res.status(400).json({ error: 'Failed to send OTP', details: response.data });
+        }
+    } catch (err) {
+        console.error('Error in signup route:', err);
+        if (err.response) {
+            console.error('2Factor API Error Data:', err.response.data);
+            console.error('2Factor API Error Status:', err.response.status);
+            console.error('2Factor API Error Headers:', err.response.headers);
+            res.status(err.response.status).json({ error: 'Error in sending OTP', details: err.response.data });
+        } else if (err.request) {
+            console.error('No response received:', err.request);
+            res.status(500).json({ error: 'No response received from OTP service' });
+        } else {
+            console.error('Error', err.message);
+            res.status(500).json({ error: 'Error in setting up OTP request' });
+        }
     }
-    catch(err){
-        console.log(err);
-        res.status(500).json({error: 'Internal Server Error'});
-    }
-})
+});
 
 // Login Route
 router.post('/login', async(req, res) => {
