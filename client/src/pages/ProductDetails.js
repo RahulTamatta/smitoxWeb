@@ -26,24 +26,26 @@ const ProductDetails = () => {
     if (auth?.user?.pincode) {
       checkPincode(auth.user.pincode);
     }
-  }, [params?.slug, auth?.user?.pincode]);
-
-  useEffect(() => {
     if (product._id && auth?.user?._id) {
       checkWishlistStatus();
     }
-  }, [product._id, auth?.user?._id]);
+  }, [params?.slug, auth?.user?.pincode]);
+
+
 
   const getProduct = async () => {
     try {
       const { data } = await axios.get(`/api/v1/product/get-product/${params.slug}`);
       setProduct(data?.product);
+      // Check the wishlist status after fetching the product
+      if (data?.product?._id && auth?.user?._id) {
+        checkWishlistStatus(data.product._id);
+      }
     } catch (error) {
       console.error(error);
       toast.error("Error fetching product details");
     }
   };
-
   const getProductsForYou = async () => {
     try {
       const { data } = await axios.get("/api/v1/productForYou/get-products");
@@ -68,7 +70,7 @@ const ProductDetails = () => {
       }
     }
     
-    return sortedBulkProducts[sortedBulkProducts.length - 1]; // Return the last bulk pricing if quantity exceeds all tiers
+    return sortedBulkProducts[sortedBulkProducts.length - 1]; // Return the last bulk 
   };
 
   const calculateTotalPrice = (bulk, quantity) => {
@@ -163,22 +165,19 @@ const ProductDetails = () => {
       toast.error("Error updating wishlist");
     }
   };
-
-  const checkWishlistStatus = async () => {
+  const checkWishlistStatus = async (productId) => {
     if (!auth.user) return;
 
     try {
-      const { data } = await axios.get(`/api/v1/carts/users/${auth.user._id}/wishlist/${product._id}`);
-      if (data.status === "success") {
-        setIsInWishlist(true);
-      } else {
-        setIsInWishlist(false);
-      }
+      const { data } = await axios.get(`/api/v1/carts/users/${auth.user._id}/wishlist/check/${productId}`);
+      setIsInWishlist(data.status === "success");
     } catch (error) {
       console.error(error);
       setIsInWishlist(false);
     }
   };
+
+
   const containerStyle = {
     maxWidth: '1200px',
     margin: '0 auto',

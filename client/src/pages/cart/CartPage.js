@@ -19,17 +19,23 @@ const CartPage = () => {
   const [minimumOrderCurrency, setMinimumOrderCurrency] = useState("");
   const navigate = useNavigate();
 
+  // Check if user is authenticated and has required data
+  const isAuthenticated = auth?.token && auth?.user?._id;
+
   useEffect(() => {
-    if (auth?.token) {
+    if (isAuthenticated) {
       getCart();
       fetchMinimumOrder();
+      getToken();
     }
-  }, [auth?.token]);
+  }, [isAuthenticated]);
 
   const getCart = async () => {
     try {
+      if (!auth?.user?._id) return;
+      
       const { data } = await axios.get(`/api/v1/carts/users/${auth.user._id}/cart`);
-      setCart(data.cart);
+      setCart(data.cart || []);
     } catch (error) {
       console.log(error);
       toast.error("Error fetching cart");
@@ -53,11 +59,12 @@ const CartPage = () => {
     try {
       let total = 0;
       cart?.forEach((item) => {
+        if (!item?.product) return;
+        
         const { product, quantity } = item;
         let itemPrice = product.price;
 
-        // Check for bulk pricing
-        if (product.bulkProducts && product.bulkProducts.length > 0) {
+        if (product.bulkProducts?.length > 0) {
           const bulkPrice = product.bulkProducts.find(
             bp => quantity >= bp.minimum && quantity <= bp.maximum
           );
@@ -77,7 +84,11 @@ const CartPage = () => {
 
   const removeCartItem = async (pid) => {
     try {
-      await axios.delete(`/api/v1/carts/users/${auth.user._id}/cart`, { data: { productId: pid } });
+      if (!auth?.user?._id || !pid) return;
+
+      await axios.delete(`/api/v1/carts/users/${auth.user._id}/cart`, { 
+        data: { productId: pid } 
+      });
       getCart();
       toast.success("Item removed from cart");
     } catch (error) {
@@ -95,12 +106,13 @@ const CartPage = () => {
     }
   };
 
-  useEffect(() => {
-    getToken();
-  }, [auth?.token]);
-
   const handlePayment = async () => {
     try {
+      if (!isAuthenticated || !auth?.user?.address) {
+        toast.error("Please login and add your address");
+        return;
+      }
+
       const total = totalPrice();
       if (total < minimumOrder) {
         toast.error(`Minimum order amount is ${minimumOrderCurrency} ${minimumOrder}`);
@@ -111,6 +123,11 @@ const CartPage = () => {
       let payload;
 
       if (paymentMethod === "Braintree") {
+        if (!instance) {
+          toast.error("Payment instance not initialized");
+          setLoading(false);
+          return;
+        }
         const { nonce } = await instance.requestPaymentMethod();
         payload = { nonce, cart };
       } else {
@@ -118,16 +135,20 @@ const CartPage = () => {
       }
 
       const { data } = await axios.post("/api/v1/product/process-payment", payload);
-      setLoading(false);
       await axios.delete(`/api/v1/carts/users/${auth.user._id}/cart/clear`);
       setCart([]);
       navigate("/dashboard/user/orders");
       toast.success("Order Placed Successfully");
     } catch (error) {
       console.log(error);
-      setLoading(false);
       toast.error("Something went wrong");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleProductClick = (slug) => {
+    navigate(`/product/${slug}`);
   };
 
   return (
@@ -136,13 +157,11 @@ const CartPage = () => {
         <div className="row">
           <div className="col-12">
             <h1 className="text-center bg-light p-2 mb-1">
-              {!auth?.user
-                ? "Hello Guest"
-                : `Hello  ${auth?.token && auth?.user?.name}`}
+              {!isAuthenticated ? "Hello Guest" : `Hello ${auth?.user?.name}`}
               <p className="text-center">
                 {cart?.length
                   ? `You Have ${cart.length} items in your cart ${
-                      auth?.token ? "" : "please login to checkout!"
+                      isAuthenticated ? "" : "please login to checkout!"
                     }`
                   : " Your Cart Is Empty"}
               </p>
@@ -152,42 +171,49 @@ const CartPage = () => {
         <div className="row">
           <div className="col-md-7 col-12">
             {cart?.map((p) => (
-              <div className="row card flex-row my-3" key={p._id}>
-                <div className="col-md-4 col-12">
-                  <img
-                    src={`/api/v1/product/product-photo/${p.product._id}`}
-                    className="card-img-top"
-                    alt={p.product.name}
-                    width="100%"
-                    height={"130px"}
-                  />
+              p?.product && (
+                <div 
+                  className="row card flex-row my-3" 
+                  key={p._id}
+                  onClick={() => handleProductClick(p.product.slug)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <div className="col-md-4 col-12">
+                    <img
+                      src={`/api/v1/product/product-photo/${p.product._id}`}
+                      className="card-img-top"
+                      alt={p.product.name}
+                      width="100%"
+                      height={"130px"}
+                    />
+                  </div>
+                  <div className="col-md-4 col-12">
+                    <p>{p.product.name}</p>
+                    <p>
+                      Price: ₹
+                      {p.product.bulkProducts?.length > 0
+                        ? p.product.bulkProducts.find(
+                            bp => p.quantity >= bp.minimum && p.quantity <= bp.maximum
+                          )?.selling_price_set || p.product.price
+                        : p.product.price} x
+                        {p.quantity} = {((p.product.bulkProducts?.length > 0
+                        ? p.product.bulkProducts.find(
+                            bp => p.quantity >= bp.minimum && p.quantity <= bp.maximum
+                          )?.selling_price_set || p.product.price
+                        : p.product.price) * p.quantity).toFixed(2)}
+                    </p>
+                    <button
+                      className="btn btn-danger"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeCartItem(p.product._id);
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
-                <div className="col-md-4 col-12">
-                  <p>{p.product.name}</p>
-                  <p>
-                    Price: ₹
-                    {p.product.bulkProducts && p.product.bulkProducts.length > 0
-                      ? p.product.bulkProducts.find(
-                          bp => p.quantity >= bp.minimum && p.quantity <= bp.maximum
-                        )?.selling_price_set || p.product.price
-                      : p.product.price} x
-                      {p.quantity} = {((p.product.bulkProducts && p.product.bulkProducts.length > 0
-                      ? p.product.bulkProducts.find(
-                          bp => p.quantity >= bp.minimum && p.quantity <= bp.maximum
-                        )?.selling_price_set || p.product.price
-                      : p.product.price) * p.quantity).toFixed(2)}
-                  </p>
-                  <button
-                    className="btn btn-danger"
-                    onClick={() => removeCartItem(p.product._id)}
-                  >
-                    Remove
-                  </button>
-                </div>
-                <div className="col-md-4 col-12 text-center">
-            
-                </div>
-              </div>
+              )
             ))}
           </div>
           <div className="col-md-5 col-12">
@@ -210,7 +236,7 @@ const CartPage = () => {
             {auth?.user?.address ? (
               <div className="mb-3">
                 <h4>Current Address</h4>
-                <h5>{auth?.user?.address}</h5>
+                <h5>{auth.user.address}</h5>
                 <button
                   className="btn btn-outline-warning"
                   onClick={() => navigate("/dashboard/user/profile")}
@@ -220,7 +246,7 @@ const CartPage = () => {
               </div>
             ) : (
               <div className="mb-3">
-                {auth?.token ? (
+                {isAuthenticated ? (
                   <button
                     className="btn btn-outline-warning"
                     onClick={() => navigate("/dashboard/user/profile")}
@@ -242,7 +268,7 @@ const CartPage = () => {
               </div>
             )}
             <div className="mt-2">
-              {!auth?.token || !cart?.length ? (
+              {!isAuthenticated || !cart?.length ? (
                 ""
               ) : (
                 <>
@@ -257,7 +283,7 @@ const CartPage = () => {
                       <option value="COD">Cash on Delivery</option>
                     </select>
                   </div>
-                  {paymentMethod === "Braintree" && (
+                  {paymentMethod === "Braintree" && clientToken && (
                     <DropIn
                       options={{
                         authorization: clientToken,
@@ -271,7 +297,12 @@ const CartPage = () => {
                   <button
                     className="btn btn-primary"
                     onClick={handlePayment}
-                    disabled={loading || (paymentMethod === "Braintree" && !instance) || !auth?.user?.address || totalPrice() < minimumOrder}
+                    disabled={
+                      loading || 
+                      (paymentMethod === "Braintree" && !instance) || 
+                      !auth?.user?.address || 
+                      totalPrice() < minimumOrder
+                    }
                   >
                     {loading ? "Processing ...." : `Place Order (${paymentMethod})`}
                   </button>

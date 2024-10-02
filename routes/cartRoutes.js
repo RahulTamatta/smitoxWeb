@@ -10,7 +10,7 @@ import {
   removeFromWishlist,
   getCart,
   addToCart,
-  removeFromCart,
+  removeFromCart,checkWishlistStatus,
   // updateCartItem,
   clearCart
 } from '../controllers/userController.js';
@@ -32,6 +32,7 @@ router.post("/users/:userId/wishlist", addToWishlist);
 
 // Remove a product from a user's wishlist
 router.delete("/users/:userId/wishlist/:productId", removeFromWishlist);
+router.get("/users/:userId/wishlist/check/:productId", checkWishlistStatus);
 // New cart routes
 router.get('/users/:userId/cart', getCart);
 router.post('/users/:userId/cart', addToCart);

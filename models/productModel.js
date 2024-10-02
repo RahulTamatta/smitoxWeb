@@ -128,7 +128,7 @@ const productSchema = new Schema(
     sku: {
       type: String,
       unique: true,
-      required: true,
+      // required: true,
     },
   },
   { timestamps: true }

@@ -510,70 +510,70 @@ const handleSubcategoryChange = (value) => {
                   onChange={(e) => setAdditionalUnit(e.target.value)}
                 />
               </div>
-
+    
               <h4>Bulk Products</h4>
-<div className="mb-3">
-  {bulkProducts.map((product, index) => (
-    <div key={index} className="row mb-2">
-      <div className="col">
-        <input
-          type="number"
-          className="form-control"
-          placeholder="Minimum"
-          name="minimum"
-          value={product.minimum}
-          onChange={(e) => handleBulkProductChange(index, e)}
-        />
-      </div>
-      <div className="col">
-        <input
-          type="number"
-          className="form-control"
-          placeholder="Maximum"
-          name="maximum"
-          value={product.maximum}
-          onChange={(e) => handleBulkProductChange(index, e)}
-        />
-      </div>
-      <div className="col">
-        <input
-          type="number"
-          className="form-control"
-          placeholder="Discount MRP"
-          name="discount_mrp"
-          value={product.discount_mrp}
-          onChange={(e) => handleBulkProductChange(index, e)}
-        />
-      </div>
-      <div className="col">
-        <input
-          type="number"
-          className="form-control"
-          placeholder="Selling Price Set"
-          name="selling_price_set"
-          value={product.selling_price_set}
-          onChange={(e) => handleBulkProductChange(index, e)}
-        />
-      </div>
-      <div className="col">
-        <button
-          type="button"
-          className="btn btn-danger"
-          onClick={() => handleRemoveBulkProduct(index)}
-        >
-          Remove
-        </button>
-      </div>
+    <div className="mb-3">
+      {bulkProducts.map((product, index) => (
+        <div key={index} className="row mb-2">
+          <div className="col">
+            <input
+              type="number"
+              className="form-control"
+              placeholder="Minimum"
+              name="minimum"
+              value={product?.minimum || ""}
+              onChange={(e) => handleBulkProductChange(index, e)}
+            />
+          </div>
+          <div className="col">
+            <input
+              type="number"
+              className="form-control"
+              placeholder="Maximum"
+              name="maximum"
+              value={product?.maximum || ""}
+              onChange={(e) => handleBulkProductChange(index, e)}
+            />
+          </div>
+          <div className="col">
+            <input
+              type="number"
+              className="form-control"
+              placeholder="Discount MRP"
+              name="discount_mrp"
+              value={product?.discount_mrp || ""}
+              onChange={(e) => handleBulkProductChange(index, e)}
+            />
+          </div>
+          <div className="col">
+            <input
+              type="number"
+              className="form-control"
+              placeholder="Selling Price Set"
+              name="selling_price_set"
+              value={product?.selling_price_set || ""}
+              onChange={(e) => handleBulkProductChange(index, e)}
+            />
+          </div>
+          <div className="col">
+            <button
+              type="button"
+              className="btn btn-danger"
+              onClick={() => handleRemoveBulkProduct(index)}
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+      ))}
+      <button
+        type="button"
+        className="btn btn-success"
+        onClick={handleAddBulkProduct}
+      >
+        Add Bulk Product
+      </button>
     </div>
-  ))}
-  <button
-    type="button"
-    className="btn btn-success"
-    onClick={handleAddBulkProduct}
-  >
-    Add Bulk Product
-  </button>
-</div>
               <div className="mb-3">
                 <button className="btn btn-primary" onClick={handleUpdate}>
                   UPDATE PRODUCT
