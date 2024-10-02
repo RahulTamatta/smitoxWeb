@@ -538,64 +538,48 @@ export const brainTreePaymentController = async (req, res) => {
     console.log(error);
   }
 };
-
 export const processPaymentController = async (req, res) => {
   try {
-    const { cart, paymentMethod } = req.body;
-    
+    const { cart, paymentMethod, nonce } = req.body; // Get nonce for Braintree from the request
     let total = 0;
-    cart.map((i) => {
-      total += i.price;
+
+    // Calculate the total price of the cart
+    cart.forEach((item) => {
+      total += item.price;
     });
 
     let order;
 
+    // Handle Cash on Delivery (COD) payment method
     if (paymentMethod === "COD") {
-      // Generate a unique transaction ID for COD
+      const transactionId = `COD-${uuidv4()}`; // Generate a unique transaction ID for COD
 
-      try {
-        // Create order in database
-        // You might want to generate a unique order ID here
-        // Example:
-        // const newOrder = new Order({ 
-        //   user: req.user._id,
-        //   products: cart,
-        //   paymentMethod: "COD",
-        //   status: "Pending"
-        // });
-        // await newOrder.save();
-        const transactionId = `COD-${uuidv4()}`;
+      // Create the order in the database
+      order = new orderModel({
+        products: cart,
+        payment: {
+          paymentMethod: "COD",
+          transactionId: transactionId,
+          status: "Pending",
+        },
+        buyer: req.user._id,
+      });
 
-        order = new orderModel({
-          products: cart,
-          payment: {
-            paymentMethod: "COD",
-            transactionId: transactionId,
-            status: "Pending",
-          },
-          buyer: req.user._id,
-        });
-  
-        await order.save();
-        // res.json({ success: true, order });
-        res.json({ success: true, message: "COD order placed successfully" });
-      } catch (error) {
-        console.error("Error processing COD order:", error);
-        res.status(500).json({ success: false, message: "Error processing COD order", error: error.message });
-      }
-      
-   
-    } else if (paymentMethod === "Braintree") {
-      // Existing Braintree payment logic
-      const { nonce } = req.body;
+      await order.save();
+      return res.json({ success: true, message: "COD order placed successfully", order });
+
+    } 
+    // Handle Braintree payment method
+    else if (paymentMethod === "Braintree") {
       let result = await gateway.transaction.sale({
-        amount: total,
+        amount: total.toFixed(2), // Ensure the total is formatted as a string with two decimal places
         paymentMethodNonce: nonce,
         options: {
           submitForSettlement: true,
         },
       });
 
+      // Check if the Braintree transaction was successful
       if (result.success) {
         order = new orderModel({
           products: cart,
@@ -608,22 +592,26 @@ export const processPaymentController = async (req, res) => {
         });
 
         await order.save();
-        res.json({ success: true, order });
+        return res.json({ success: true, order });
       } else {
-        res.status(500).send(result.message);
+        return res.status(500).json({ success: false, message: result.message });
       }
-    } else {
-      res.status(400).json({ success: false, message: "Invalid payment method" });
+    } 
+    // Handle invalid payment method
+    else {
+      return res.status(400).json({ success: false, message: "Invalid payment method" });
     }
   } catch (error) {
     console.error("Unexpected error in payment processing:", error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       success: false, 
       message: "Unexpected error in payment processing", 
       error: error.message 
     });
   }
 };
+
+
 
 export const getProductPhoto = async (req, res) => {
   try {

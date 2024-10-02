@@ -38,7 +38,7 @@ const AdminOrders = () => {
     try {
       setLoading(true);
       setError(null);
-      const { data } = await axios.get(`/api/v1/auth/all-orders`, {
+      const { data } = await axios.get(`/api/v1/auth/all`, {
         params: { status: type }
       });
       setOrders(Array.isArray(data) ? data : []);

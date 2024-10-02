@@ -148,7 +148,16 @@ productSchema.statics.checkSKU = async function(sku) {
   return count > 0;
 };
 
-// Method to get the last SKU for a specific user
+
+
+
+
+
+
+
+
+
+
 productSchema.statics.getLastSKU = async function(userId) {
   const product = await this.findOne({ userId: userId })
     .sort({ sku: -1 })
@@ -156,5 +165,32 @@ productSchema.statics.getLastSKU = async function(userId) {
     .lean();
   return product ? product.sku : null;
 };
+
+productSchema.statics.generateSKU = async function(name, category, subcategory) {
+  // Function to get first 3 letters of a string, uppercase
+  const getPrefix = (str) => str.replace(/[^a-zA-Z]/g, '').substring(0, 3).toUpperCase();
+
+  const namePrefix = getPrefix(name);
+  const categoryPrefix = getPrefix(category);
+  const subcategoryPrefix = getPrefix(subcategory);
+
+  const basePrefix = `${namePrefix}-${categoryPrefix}-${subcategoryPrefix}`;
+
+  // Find the last product with this prefix
+  const lastProduct = await this.findOne({ sku: new RegExp(`^${basePrefix}-\\d+$`) })
+                               .sort({ sku: -1 })
+                               .select('sku')
+                               .lean();
+
+  let newNumber = 1;
+  if (lastProduct) {
+    const lastNumber = parseInt(lastProduct.sku.split('-').pop(), 10);
+    newNumber = lastNumber + 1;
+  }
+
+  return `${basePrefix}-${newNumber.toString().padStart(5, '0')}`;
+};
+
+
 
 export default mongoose.model("Product", productSchema);

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import Layout from "../../components/Layout/Layout";
 import { useAuth } from "../../context/auth";
 import { useNavigate } from "react-router-dom";
-import DropIn from "braintree-web-drop-in-react";
+// import DropIn from "braintree-web-drop-in-react"; // Commented out for future use
 import { AiFillWarning } from "react-icons/ai";
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -11,10 +11,10 @@ import "./cartPage.css";
 const CartPage = () => {
   const [auth] = useAuth();
   const [cart, setCart] = useState([]);
-  const [clientToken, setClientToken] = useState("");
-  const [instance, setInstance] = useState("");
+  // const [clientToken, setClientToken] = useState(""); // Commented out for future use
+  // const [instance, setInstance] = useState(""); // Commented out for future use
   const [loading, setLoading] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("Braintree");
+  const [paymentMethod] = useState("COD"); // Fixed to only use COD
   const [minimumOrder, setMinimumOrder] = useState(0);
   const [minimumOrderCurrency, setMinimumOrderCurrency] = useState("");
   const navigate = useNavigate();
@@ -26,7 +26,7 @@ const CartPage = () => {
     if (isAuthenticated) {
       getCart();
       fetchMinimumOrder();
-      getToken();
+      // getToken(); // Commented out for future use
     }
   }, [isAuthenticated]);
 
@@ -97,14 +97,14 @@ const CartPage = () => {
     }
   };
 
-  const getToken = async () => {
-    try {
-      const { data } = await axios.get("/api/v1/product/braintree/token");
-      setClientToken(data?.clientToken);
-    } catch (error) {
-      console.log(error);
-    }
-  };
+  // const getToken = async () => { // Commented out for future use
+  //   try {
+  //     const { data } = await axios.get("/api/v1/product/braintree/token");
+  //     setClientToken(data?.clientToken);
+  //   } catch (error) {
+  //     console.log(error);
+  //   }
+  // };
 
   const handlePayment = async () => {
     try {
@@ -112,33 +112,29 @@ const CartPage = () => {
         toast.error("Please login and add your address");
         return;
       }
-
+  
       const total = totalPrice();
       if (total < minimumOrder) {
         toast.error(`Minimum order amount is ${minimumOrderCurrency} ${minimumOrder}`);
         return;
       }
-
+  
       setLoading(true);
-      let payload;
-
-      if (paymentMethod === "Braintree") {
-        if (!instance) {
-          toast.error("Payment instance not initialized");
-          setLoading(false);
-          return;
-        }
-        const { nonce } = await instance.requestPaymentMethod();
-        payload = { nonce, cart };
-      } else {
-        payload = { cart };
-      }
-
+  
+      const payload = { 
+        cart,
+        paymentMethod // Include the payment method in the payload
+      };
+  
       const { data } = await axios.post("/api/v1/product/process-payment", payload);
-      await axios.delete(`/api/v1/carts/users/${auth.user._id}/cart/clear`);
-      setCart([]);
-      navigate("/dashboard/user/orders");
-      toast.success("Order Placed Successfully");
+      if (data.success) {
+        await axios.delete(`/api/v1/carts/users/${auth.user._id}/cart/clear`);
+        setCart([]);
+        navigate("/dashboard/user/orders");
+        toast.success("Order Placed Successfully");
+      } else {
+        toast.error(data.message); // Handle error messages returned by the backend
+      }
     } catch (error) {
       console.log(error);
       toast.error("Something went wrong");
@@ -146,7 +142,7 @@ const CartPage = () => {
       setLoading(false);
     }
   };
-
+  
   const handleProductClick = (slug) => {
     navigate(`/product/${slug}`);
   };
@@ -272,39 +268,17 @@ const CartPage = () => {
                 ""
               ) : (
                 <>
-                  <div className="mb-3">
-                    <h4>Select Payment Method</h4>
-                    <select
-                      className="form-select"
-                      value={paymentMethod}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                    >
-                      <option value="Braintree">Online Payment</option>
-                      <option value="COD">Cash on Delivery</option>
-                    </select>
-                  </div>
-                  {paymentMethod === "Braintree" && clientToken && (
-                    <DropIn
-                      options={{
-                        authorization: clientToken,
-                        paypal: {
-                          flow: "vault",
-                        },
-                      }}
-                      onInstance={(instance) => setInstance(instance)}
-                    />
-                  )}
+                  <h4>Payment Method: {paymentMethod}</h4>
                   <button
                     className="btn btn-primary"
                     onClick={handlePayment}
                     disabled={
                       loading || 
-                      (paymentMethod === "Braintree" && !instance) || 
                       !auth?.user?.address || 
                       totalPrice() < minimumOrder
                     }
                   >
-                    {loading ? "Processing ...." : `Place Order (${paymentMethod})`}
+                    {loading ? "Processing..." : "Place Order"}
                   </button>
                 </>
               )}

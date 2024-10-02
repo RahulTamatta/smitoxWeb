@@ -402,10 +402,21 @@ const CreateProduct = () => {
                     className="form-control"
                     onChange={(e) => setAdditionalUnit(e.target.value)}
                   >
-                    <option value="Unit A">Unit A</option>
-                    <option value="Unit B">Unit B</option>
-                    <option value="Unit C">Unit C</option>
-                    {/* Add more options as needed */}
+                         <option value="Chart">Chart</option>
+                    <option value="Dozens">Dozens</option>
+                    <option value="Kg">Kg</option>
+                    <option value="Litre">Litre</option>
+                    <option value="Meter">Meter</option>
+                    <option value="Metric Tons">Metric Tons</option>
+                    <option value="Nos.">Nos.</option>
+                    <option value="Packet">Packet</option>
+                    <option value="Pairs">Pairs</option>
+                    <option value="Piece">Piece</option>
+                    <option value="Pieces">Pieces</option>
+                    <option value="Pounds">Pounds</option>
+                    <option value="Quintal">Quintal</option>
+                    <option value="Sets">Sets</option>
+                    <option value="Tons">Tons</option>
                   </select>
                 </div>
                 <div className="col-md-4">
