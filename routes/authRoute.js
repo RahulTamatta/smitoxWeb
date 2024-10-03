@@ -14,7 +14,7 @@ import {
 } from '../controllers/authController.js';
 import { isAdmin, requireSignIn } from '../middlewares/authMiddleware.js';
 import orderModel from '../models/orderModel.js'; // Changed to import
-import generateInvoicePDF from '../client/src/pages/Admin/Admin order/pdf.js'; // Changed to import
+ // Changed to import
 // import { addTrackingInfo } from "../controllers/orderController.js";
 
 //router object
@@ -55,22 +55,7 @@ router.get("/orders", requireSignIn, getOrdersController);
 //all orders
 router.get("/all-orders", requireSignIn, isAdmin, getAllOrdersController);
 router.post("/order/:orderId/add-product", requireSignIn, isAdmin, addProductToOrderController);
-router.get("/order/:orderId/invoice", requireSignIn, async (req, res) => {
-  try {
-    const order = await orderModel.findById(req.params.orderId).populate('buyer').populate('products');
-    if (!order) {
-      return res.status(404).send('Order not found');
-    }
 
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=invoice-${order._id}.pdf`);
-
-    generateInvoicePDF(order, res);
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Error generating invoice');
-  }
-});
 // order status update
 router.put("/order-status/:orderId", requireSignIn, isAdmin, orderStatusController);
 

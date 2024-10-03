@@ -319,49 +319,9 @@ export const updateProfileController = async (req, res) => {
   }
 };
 
-//orders
-export const getOrdersController = async (req, res) => {
-  try {
-    const orders = await orderModel
-      .find({ buyer: req.user._id })
-      .populate("products", "-photo")
-      .populate("buyer", "name");
-    res.json(orders);
-  } catch (error) {
-    console.log(error);
-    res.status(500).send({
-      success: false,
-      message: "Error WHile Geting Orders",
-      error,
-    });
-  }
-};
 
-export const getAllOrdersController = async (req, res) => {
-  try {
-    const { status } = req.query;
-    let query = {};
-    
-    if (status && status !== 'all-orders') {
-      query.status = status;
-    }
 
-    const orders = await orderModel
-      .find(query)
-      .populate("products", "-photo")
-      .populate("buyer", "name")
-      .sort({ createdAt: "-1" });
 
-    res.json(orders);
-  } catch (error) {
-    console.log(error);
-    res.status(500).send({
-      success: false,
-      message: "Error While Getting Orders",
-      error,
-    });
-  }
-};
 
 export const addProductToOrderController = async (req, res) => {
   try {
@@ -425,37 +385,15 @@ export const addProductToOrderController = async (req, res) => {
   }
 };
 
-//order status'
-export const orderStatusController = async (req, res) => {
-  try {
-    const { orderId } = req.params;
-    const { status } = req.body;
-    // console.log("Oder and status",{orderId,status});
-    const orders = await orderModel.findByIdAndUpdate(
-      orderId,
-      { status },
-      { new: true }
-    );
-    res.json(orders);
-  } catch (error) {
-    console.log(error);
-    res.status(500).send({
-      success: false,
-      message: "Error While Updateing orderModel",
-      error,
-    });
-  }
-};
 
-// In your orderController.js file
 export const addTrackingInfo = async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { company, id } = req.body;
+    const { trackingId } = req.body;
 
     const updatedOrder = await orderModel.findByIdAndUpdate(
       orderId,
-      { tracking: { company, id } },
+      { trackingId },
       { new: true }
     );
 
@@ -468,18 +406,19 @@ export const addTrackingInfo = async (req, res) => {
 
     res.status(200).send({
       success: true,
-      message: "Tracking information added successfully",
+      message: "Tracking ID added successfully",
       order: updatedOrder,
     });
   } catch (error) {
     console.log(error);
     res.status(500).send({
       success: false,
-      message: "Error adding tracking information",
+      message: "Error adding tracking ID",
       error,
     });
   }
 };
+
 
 export const updateOrderController = async (req, res) => {
   try {
@@ -608,3 +547,88 @@ export const deleteProductFromOrderController = async (req, res) => {
   }
 };
 
+
+
+
+//orders
+export const getOrdersController = async (req, res) => {
+  try {
+    const orders = await orderModel
+      .find({ buyer: req.user._id })
+      .populate("products", "-photo")
+      .populate("buyer", "name");
+    res.json(orders);
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      success: false,
+      message: "Error WHile Geting Orders",
+      error,
+    });
+  }
+};
+//orders
+// export const getAllOrdersController = async (req, res) => {
+//   try {
+//     const orders = await orderModel
+//       .find({})
+//       .populate("products", "-photo")
+//       .populate("buyer", "name")
+//       .sort({ createdAt: "-1" });
+//     res.json(orders);
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).send({
+//       success: false,
+//       message: "Error WHile Geting Orders",
+//       error,
+//     });
+//   }
+// };
+
+export const getAllOrdersController = async (req, res) => {
+  try {
+    const { status } = req.query;
+    let query = {};
+    
+    if (status && status !== 'all-orders') {
+      query.status = status;
+    }
+
+    const orders = await orderModel
+      .find(query)
+      .populate("products", "-photo")
+      .populate("buyer", "name")
+      .sort({ createdAt: "-1" });
+
+    res.json(orders);
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      success: false,
+      message: "Error While Getting Orders",
+      error,
+    });
+  }
+};
+
+//order status
+export const orderStatusController = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { status } = req.body;
+    const orders = await orderModel.findByIdAndUpdate(
+      orderId,
+      { status },
+      { new: true }
+    );
+    res.json(orders);
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      success: false,
+      message: "Error While Updateing Order",
+      error,
+    });
+  }
+};

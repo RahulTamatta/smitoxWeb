@@ -23,12 +23,16 @@ const orderSchema = new mongoose.Schema(
     },
     buyer: {
       type: mongoose.ObjectId,
-      ref: "users",
+      ref: "User",
     },
     status: {
       type: String,
       default: "Pending",
-      enum: ["Pending", "Confirmed", "Accepted", "Cancelled", "Rejected", "Dispatched","Delivered","Returned"],
+      enum: ["Pending", "Confirmed", "Accepted", "Cancelled", "Rejected", "Dispatched", "Delivered", "Returned"],
+    },
+    trackingId: {
+      type: String,
+      default: null,
     },
   },
   { timestamps: true }

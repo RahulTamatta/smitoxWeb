@@ -109,20 +109,23 @@ export const clearCart = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const cart = await Cart.findOne({ user: userId });
-
-    if (!cart) {
+    const result = await Cart.findOneAndUpdate(
+      { user: userId },
+      { $set: { products: [] } },
+      { new: true }
+    );
+    
+    if (!result) {
       return res.status(404).json({ status: 'error', message: 'Cart not found' });
     }
-
-    cart.products = [];
-    await cart.save();
-
+    
     res.json({ status: 'success', message: 'Cart cleared' });
   } catch (error) {
-    res.status(500).json({ status: 'error', message: error.message });
+    console.error('Error clearing cart:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
   }
 };
+
 
 export const removeFromCart = async (req, res) => {
   try {
@@ -134,7 +137,13 @@ export const removeFromCart = async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'Cart not found' });
     }
     
+    const initialLength = cart.products.length;
     cart.products = cart.products.filter(item => item.product.toString() !== productId);
+    
+    if (cart.products.length === initialLength) {
+      return res.status(404).json({ status: 'error', message: 'Product not found in cart' });
+    }
+
     await cart.save();
     
     res.json({ status: 'success', message: 'Product removed from cart' });

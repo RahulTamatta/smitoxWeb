@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Modal, Form, Nav, Spinner, Alert, InputGroup } from 'react-bootstrap';
+import { Table, Button, Modal, Form, Nav, Spinner, Alert } from 'react-bootstrap';
 import axios from 'axios';
 import moment from 'moment';
 import { message } from 'antd';
@@ -9,7 +9,6 @@ import { useAuth } from "../../../context/auth";
 import { useSearch } from "../../../context/search";
 import OrderModal from "./components/orderModal";
 import SearchModal from "./components/searchModal";
-
 
 const AdminOrders = () => {
   const [status] = useState([
@@ -29,7 +28,7 @@ const AdminOrders = () => {
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showTrackingModal, setShowTrackingModal] = useState(false);
   const [trackingInfo, setTrackingInfo] = useState({ company: '', id: '' });
-
+  const [trackingId, setTrackingId] = useState('');
   useEffect(() => {
     if (auth?.token) getOrders(orderType);
   }, [auth?.token, orderType]);
@@ -38,7 +37,7 @@ const AdminOrders = () => {
     try {
       setLoading(true);
       setError(null);
-      const { data } = await axios.get(`/api/v1/auth/all`, {
+      const { data } = await axios.get(`/api/v1/auth/all-orders`, {
         params: { status: type }
       });
       setOrders(Array.isArray(data) ? data : []);
@@ -101,7 +100,7 @@ const AdminOrders = () => {
       (acc, product) => acc + Number(product.price) * Number(product.quantity),
       0
     );
-    const gst = subtotal * 0.18; // Assuming 18% GST
+    const gst = subtotal * 0.18;
     const total = subtotal + gst + Number(selectedOrder.deliveryCharges || 0) + Number(selectedOrder.codCharges || 0) - Number(selectedOrder.discount || 0);
 
     return { subtotal, gst, total };
@@ -149,12 +148,6 @@ const AdminOrders = () => {
     }
   };
 
-  // const handleCloseSearchModal = () => {
-  //   setShowSearchModal(false);
-  //   setSearchKeyword('');
-  //   setSearchResults([]);
-  // };
-
   const handleSearch = async (e) => {
     e.preventDefault();
     try {
@@ -166,63 +159,16 @@ const AdminOrders = () => {
     }
   };
 
-  // const handleAddToOrder = async (product) => {
-  //   try {
-  //     const updatedOrder = {
-  //       ...selectedOrder,
-  //       products: [
-  //         ...selectedOrder.products,
-  //         {
-  //           ...product,
-  //           quantity: 1,
-  //         },
-  //       ],
-  //     };
-  //     setSelectedOrder(updatedOrder);
-      
-  //     const response = await axios.post(`/api/v1/auth/order/${selectedOrder._id}/add-product`, {
-  //       productId: product._id,
-  //       quantity: product.quantity,
-  //       price: product.price,
-  //     });
-
-  //     if (response.data.success) {
-  //       message.success("Product added to order successfully");
-  //     } else {
-  //       message.error(response.data.message);
-  //     }
-  //   } catch (error) {
-  //     console.log(error);
-  //     message.error("Error adding product to order");
-  //   }
-  //   handleCloseSearchModal();
-  // };
-
   const handleUpdateOrder = async () => {
     try {
-      // Log the values to debug
       console.log('Updating order with:', selectedOrder);
   
       const { _id, status, codCharges, deliveryCharges, discount, amount, products } = selectedOrder;
   
-      // Ensure all numeric values are properly converted to numbers
       const numericCodCharges = Number(codCharges) || 0;
       const numericDeliveryCharges = Number(deliveryCharges) || 0;
       const numericDiscount = Number(discount) || 0;
       const numericAmount = Number(amount) || 0;
-  
-      console.log('Prepared data:', {
-        status,
-        codCharges: numericCodCharges,
-        deliveryCharges: numericDeliveryCharges,
-        discount: numericDiscount,
-        amount: numericAmount,
-        products: products.map(p => ({
-          _id: p._id,
-          quantity: Number(p.quantity) || 0,
-          price: Number(p.price) || 0,
-        })),
-      });
   
       const response = await axios.put(`/api/v1/auth/order/${_id}`, {
         status,
@@ -250,20 +196,7 @@ const AdminOrders = () => {
       message.error("Error updating order");
     }
   };
-  
 
-  // const calculateTotals = () => {
-  //   if (!selectedOrder || !selectedOrder.products) return { subtotal: 0, gst: 0, total: 0 };
-
-  //   const subtotal = selectedOrder.products.reduce(
-  //     (acc, product) => acc + Number(product.price) * Number(product.quantity),
-  //     0
-  //   );
-  //   const gst = subtotal * 0.18; // Assuming 18% GST
-  //   const total = subtotal + gst + Number(selectedOrder.deliveryCharges || 0) + Number(selectedOrder.codCharges || 0) - Number(selectedOrder.discount || 0);
-
-  //   return { subtotal, gst, total };
-  // };
   const handleDeleteProduct = async (index) => {
     if (index >= 0 && index < selectedOrder.products.length) {
       try {
@@ -336,35 +269,45 @@ const AdminOrders = () => {
       message.error("Error downloading order invoice");
     }
   };
-  
 
-
-  const handleTrackingModalShow = (order) => {
-    setSelectedOrder(order);
-    setShowTrackingModal(true);
-  };
-
-  const handleTrackingModalClose = () => {
-    setShowTrackingModal(false);
-    setTrackingInfo({ company: '', id: '' });
-  };
 
   const handleTrackingInfoChange = (e) => {
     setTrackingInfo({ ...trackingInfo, [e.target.name]: e.target.value });
   };
 
+  const handleTrackingModalShow = (order) => {
+    setSelectedOrder(order);
+    setTrackingId(order.trackingId || '');
+    setShowTrackingModal(true);
+  };
+
+ 
+
+    const handleTrackingModalClose = () => {
+    setShowTrackingModal(false);
+    setTrackingId('');
+  };
+
+  const handleTrackingIdChange = (e) => {
+    setTrackingId(e.target.value);
+  };
+
   const handleAddTracking = async () => {
     try {
-      await axios.put(`/api/v1/auth/order/${selectedOrder._id}/tracking`, trackingInfo);
-      message.success("Tracking information added successfully");
-      getOrders(orderType);
-      handleTrackingModalClose();
+      const { data } = await axios.put(`/api/v1/auth/order/${selectedOrder._id}/tracking`, { trackingId });
+      if (data.success) {
+        message.success(data.message);
+        setSelectedOrder(data.order);
+        getOrders(orderType);
+        handleTrackingModalClose();
+      } else {
+        message.error(data.message);
+      }
     } catch (error) {
       console.log(error);
       message.error("Error adding tracking information");
     }
   };
-
   return (
     <Layout title={"All Orders Data"}>
       <div className="row dashboard">
@@ -398,8 +341,7 @@ const AdminOrders = () => {
                 <tr>
                   <th>#</th>
                   <th>Order Id</th>
-                  <th>Trackin Information</th>
-                 
+                  <th>Tracking Information</th>
                   <th>Items</th>
                   <th>Status</th>
                   <th>Created</th>
@@ -420,13 +362,11 @@ const AdminOrders = () => {
                         </Button>
                       )}
                     </td>
-                
                     <td>{o?.products?.length}</td>
                     <td>{o.status}</td>
                     <td>{moment(o.createdAt).format('DD-MM-YYYY')}</td>
                     <td>
                       <Button variant="info" onClick={() => handleShow(o)}>View</Button>
-                  
                     </td>
                   </tr>
                 ))}
@@ -455,7 +395,8 @@ const AdminOrders = () => {
           handleAddToOrder={handleAddToOrder} 
         />
       )}
- <Modal show={showTrackingModal} onHide={handleTrackingModalClose}>
+
+      <Modal show={showTrackingModal} onHide={handleTrackingModalClose}>
         <Modal.Header closeButton>
           <Modal.Title>Add Tracking Information</Modal.Title>
         </Modal.Header>
@@ -492,10 +433,15 @@ const AdminOrders = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+
       <SearchModal
         show={showSearchModal}
         handleClose={handleCloseSearchModal}
         handleAddToOrder={handleAddToOrder}
+        searchKeyword={searchKeyword}
+        setSearchKeyword={setSearchKeyword}
+        handleSearch={handleSearch}
+        searchResults={searchResults}
       />
     </Layout>
   );

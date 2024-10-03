@@ -36,8 +36,8 @@ router.get("/users/:userId/wishlist/check/:productId", checkWishlistStatus);
 // New cart routes
 router.get('/users/:userId/cart', getCart);
 router.post('/users/:userId/cart', addToCart);
-router.delete('/users/:userId/cart', removeFromCart);
+router.delete('/users/:userId/cart/:productId', removeFromCart);
 // router.put('/users/:userId/cart', updateCartItem);
-router.delete('/users/:userId/cart/clear', clearCart);
+router.delete('/users/:userId/cart', clearCart);
 
 export default router;

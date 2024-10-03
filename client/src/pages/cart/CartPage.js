@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import Layout from "../../components/Layout/Layout";
 import { useAuth } from "../../context/auth";
 import { useNavigate } from "react-router-dom";
-// import DropIn from "braintree-web-drop-in-react"; // Commented out for future use
 import { AiFillWarning } from "react-icons/ai";
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -11,22 +10,18 @@ import "./cartPage.css";
 const CartPage = () => {
   const [auth] = useAuth();
   const [cart, setCart] = useState([]);
-  // const [clientToken, setClientToken] = useState(""); // Commented out for future use
-  // const [instance, setInstance] = useState(""); // Commented out for future use
   const [loading, setLoading] = useState(false);
-  const [paymentMethod] = useState("COD"); // Fixed to only use COD
+  const [paymentMethod] = useState("COD");
   const [minimumOrder, setMinimumOrder] = useState(0);
   const [minimumOrderCurrency, setMinimumOrderCurrency] = useState("");
   const navigate = useNavigate();
 
-  // Check if user is authenticated and has required data
   const isAuthenticated = auth?.token && auth?.user?._id;
 
   useEffect(() => {
     if (isAuthenticated) {
       getCart();
       fetchMinimumOrder();
-      // getToken(); // Commented out for future use
     }
   }, [isAuthenticated]);
 
@@ -86,25 +81,38 @@ const CartPage = () => {
     try {
       if (!auth?.user?._id || !pid) return;
 
-      await axios.delete(`/api/v1/carts/users/${auth.user._id}/cart`, { 
-        data: { productId: pid } 
-      });
-      getCart();
-      toast.success("Item removed from cart");
+      const response = await axios.delete(`/api/v1/carts/users/${auth.user._id}/cart/${pid}`);
+      
+      if (response.data.status === 'success') {
+        getCart(); // Refresh the cart after successful removal
+        toast.success("Item removed from cart");
+      } else {
+        toast.error("Failed to remove item from cart");
+      }
     } catch (error) {
       console.log(error);
       toast.error("Error removing item from cart");
     }
   };
 
-  // const getToken = async () => { // Commented out for future use
-  //   try {
-  //     const { data } = await axios.get("/api/v1/product/braintree/token");
-  //     setClientToken(data?.clientToken);
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // };
+ 
+  const clearCart = async () => {
+    try {
+      if (!auth?.user?._id) return;
+
+      const response = await axios.delete(`/api/v1/carts/users/${auth.user._id}/cart`);
+
+      if (response.data.status === 'success') {
+        setCart([]); // Clear the cart state
+        toast.success("Cart cleared successfully");
+      } else {
+        toast.error("Failed to clear cart");
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Error clearing cart");
+    }
+  };
 
   const handlePayment = async () => {
     try {
@@ -123,17 +131,19 @@ const CartPage = () => {
   
       const payload = { 
         cart,
-        paymentMethod // Include the payment method in the payload
+        paymentMethod
       };
   
       const { data } = await axios.post("/api/v1/product/process-payment", payload);
       if (data.success) {
-        await axios.delete(`/api/v1/carts/users/${auth.user._id}/cart/clear`);
-        setCart([]);
+        // Clear the cart on the server and update local state
+        await clearCart();
+        
+        // Navigate to the orders page
         navigate("/dashboard/user/orders");
         toast.success("Order Placed Successfully");
       } else {
-        toast.error(data.message); // Handle error messages returned by the backend
+        toast.error(data.message);
       }
     } catch (error) {
       console.log(error);
@@ -142,7 +152,6 @@ const CartPage = () => {
       setLoading(false);
     }
   };
-  
   const handleProductClick = (slug) => {
     navigate(`/product/${slug}`);
   };
@@ -279,6 +288,13 @@ const CartPage = () => {
                     }
                   >
                     {loading ? "Processing..." : "Place Order"}
+                  </button>
+                  <button
+                    className="btn btn-danger ml-2"
+                    onClick={clearCart}
+                    disabled={loading}
+                  >
+                    Clear Cart
                   </button>
                 </>
               )}
