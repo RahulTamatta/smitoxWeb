@@ -514,7 +514,7 @@ export const updateOrderController = async (req, res) => {
     order.codCharges = Number(codCharges) || 0;
     order.discount = Number(discount) || 0;
     order.amount = Number(amount) || 0;
-    order.status = status || order.status;
+    order.status =  order.status;
 
     console.log("Updated deliveryCharges:", order.deliveryCharges);
     console.log("Updated codCharges:", order.codCharges);

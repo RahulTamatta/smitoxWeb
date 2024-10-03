@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Layout from "../../components/Layout/Layout";
 import { useAuth } from "../../context/auth";
 import { useNavigate } from "react-router-dom";
+import DropIn from "braintree-web-drop-in-react";
 import { AiFillWarning } from "react-icons/ai";
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -10,27 +11,26 @@ import "./cartPage.css";
 const CartPage = () => {
   const [auth] = useAuth();
   const [cart, setCart] = useState([]);
+  const [clientToken, setClientToken] = useState("");
+  const [instance, setInstance] = useState("");
   const [loading, setLoading] = useState(false);
-  const [paymentMethod] = useState("COD");
+  const [paymentMethod, setPaymentMethod] = useState("Braintree");
   const [minimumOrder, setMinimumOrder] = useState(0);
   const [minimumOrderCurrency, setMinimumOrderCurrency] = useState("");
   const navigate = useNavigate();
 
-  const isAuthenticated = auth?.token && auth?.user?._id;
-
   useEffect(() => {
-    if (isAuthenticated) {
+    if (auth?.token) {
       getCart();
       fetchMinimumOrder();
     }
-  }, [isAuthenticated]);
+  }, [auth?.token]);
+  const isAuthenticated = auth?.token && auth?.user?._id;
 
   const getCart = async () => {
     try {
-      if (!auth?.user?._id) return;
-      
       const { data } = await axios.get(`/api/v1/carts/users/${auth.user._id}/cart`);
-      setCart(data.cart || []);
+      setCart(data.cart);
     } catch (error) {
       console.log(error);
       toast.error("Error fetching cart");
@@ -54,12 +54,11 @@ const CartPage = () => {
     try {
       let total = 0;
       cart?.forEach((item) => {
-        if (!item?.product) return;
-        
         const { product, quantity } = item;
         let itemPrice = product.price;
 
-        if (product.bulkProducts?.length > 0) {
+        // Check for bulk pricing
+        if (product.bulkProducts && product.bulkProducts.length > 0) {
           const bulkPrice = product.bulkProducts.find(
             bp => quantity >= bp.minimum && quantity <= bp.maximum
           );
@@ -79,23 +78,29 @@ const CartPage = () => {
 
   const removeCartItem = async (pid) => {
     try {
-      if (!auth?.user?._id || !pid) return;
-
-      const response = await axios.delete(`/api/v1/carts/users/${auth.user._id}/cart/${pid}`);
-      
-      if (response.data.status === 'success') {
-        getCart(); // Refresh the cart after successful removal
-        toast.success("Item removed from cart");
-      } else {
-        toast.error("Failed to remove item from cart");
-      }
+      await axios.delete(`/api/v1/carts/users/${auth.user._id}/cart`, { data: { productId: pid } });
+      getCart();
+      toast.success("Item removed from cart");
     } catch (error) {
       console.log(error);
       toast.error("Error removing item from cart");
     }
   };
 
- 
+  const getToken = async () => {
+    try {
+      const { data } = await axios.get("/api/v1/product/braintree/token");
+      setClientToken(data?.clientToken);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    getToken();
+  }, [auth?.token]);
+
+
   const clearCart = async () => {
     try {
       if (!auth?.user?._id) return;
@@ -113,14 +118,8 @@ const CartPage = () => {
       toast.error("Error clearing cart");
     }
   };
-
   const handlePayment = async () => {
     try {
-      if (!isAuthenticated || !auth?.user?.address) {
-        toast.error("Please login and add your address");
-        return;
-      }
-  
       const total = totalPrice();
       if (total < minimumOrder) {
         toast.error(`Minimum order amount is ${minimumOrderCurrency} ${minimumOrder}`);
@@ -128,13 +127,14 @@ const CartPage = () => {
       }
   
       setLoading(true);
+      
+      // Hardcode the payment method to "COD"
+      const paymentMethod = "COD";
   
-      const payload = { 
-        cart,
-        paymentMethod
-      };
+      const payload = { cart, paymentMethod };
   
       const { data } = await axios.post("/api/v1/product/process-payment", payload);
+      setLoading(false);
       if (data.success) {
         // Clear the cart on the server and update local state
         await clearCart();

@@ -15,7 +15,7 @@ import {
   getProductPhoto,
   productSubcategoryController,
   processPaymentController, // Add this new controller
-  braintreeTokenController, // Keep this for Braintree token generation
+  // braintreeTokenController, // Keep this for Braintree token generation
 } from "../controllers/productController.js";
 import { isAdmin, requireSignIn } from "../middlewares/authMiddleware.js";
 import formidable from "express-formidable";
@@ -50,8 +50,7 @@ router.get("/search/:keyword", searchProductController);
 router.get("/related-product/:pid/:cid", realtedProductController);
 router.get("/product-category/:slug", productCategoryController);
 router.get("/product-subcategory/:subcategoryId", productSubcategoryController);
-// Payment routes
-router.get("/braintree/token", braintreeTokenController); // Keep this for Braintree token
+// Keep this for Braintree token
 // router.get("/product-photo/:pid", getProductPhoto);
 // New route for processing payments (both COD and Braintree)
 router.post("/process-payment", requireSignIn, processPaymentController);
