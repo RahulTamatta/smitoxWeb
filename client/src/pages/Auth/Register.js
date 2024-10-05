@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Layout from "./../../components/Layout/Layout";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import "../../styles/AuthStyles.css";
 
@@ -13,6 +13,14 @@ const Register = () => {
   const [pincode, setPincode] = useState("");
   const [answer, setAnswer] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Pre-fill the phone number if it's available in the location state
+    if (location.state && location.state.phoneNumber) {
+      setPhone(location.state.phoneNumber);
+    }
+  }, [location.state]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -69,7 +77,7 @@ const Register = () => {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               className="form-control"
-              placeholder="Enter Your Phone"
+              placeholder="Enter Your Phone Number"
               required
             />
           </div>

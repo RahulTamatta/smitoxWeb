@@ -81,13 +81,19 @@ const OrderModal = ({
                                     products.map((product, index) => (
                                         <tr key={product._id}>
                                             <td>
-                                                <img
-                                                    src={`/api/v1/product/product-photo/${product._id}`}
-                                                    alt={product.name}
-                                                    width="50"
-                                                />
+                                            <img
+                                    src={`/api/v1/product/product-photo/${product.product?._id || product._id}`}
+                                    alt={product.product?.name || product.name || "Product"}
+                                    width="50"
+                                    onError={(e) => {
+                                        e.target.onerror = null;
+                                        e.target.src = '/path/to/fallback/image.jpg';
+                                    }}
+                                />
+                                
                                             </td>
-                                            <td>{product.name}</td>
+                                            <td>{product.product?.name || product.name || "Unknown Product"}</td>
+                           
                                             <td>
                                                 <Form.Control
                                                     type="number"

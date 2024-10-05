@@ -25,21 +25,21 @@ const Header = () => {
   };
 
   // Fetch wishlist count from the server
-  const fetchWishlistCount = async () => {
-    try {
-      if (auth?.user) {
-        const { data } = await axios.get(`/api/v1/user/${auth.user._id}/wishlist`);
-        setWishlistCount(data.wishlist.length);
-      }
-    } catch (error) {
-      console.log(error);
-      toast.error("Error fetching wishlist count");
-    }
-  };
+  // const fetchWishlistCount = async () => {
+  //   try {
+  //     if (auth?.user) {
+  //       const { data } = await axios.get(`/api/v1/user/${auth.user._id}/wishlist`);
+  //       setWishlistCount(data.wishlist.length);
+  //     }
+  //   } catch (error) {
+  //     console.log(error);
+  //     toast.error("Error fetching wishlist count");
+  //   }
+  // };
 
   useEffect(() => {
     fetchCartCount();
-    fetchWishlistCount();
+    // fetchWishlistCount();
   }, [auth?.user]);
 
   const handleLogout = () => {

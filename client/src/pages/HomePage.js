@@ -10,6 +10,7 @@ import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import { useCart } from "../context/cart";
 import SearchInput from "../components/Form/SearchInput";
+import ProductCard from "./ProductCard"; // Import the new ProductCard component
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ const HomePage = () => {
     getAllCategory();
     getTotal();
     getBanners();
-    checkUserStatus();
+    // checkUserStatus();
     getProductsForYou();
   }, []);
   useEffect(() => {
@@ -41,20 +42,20 @@ const HomePage = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-  const checkUserStatus = async () => {
-    try {
-      const { data } = await axios.get("/api/v1/usersLists/current-user");
-      if (data.success) {
-        setUser(data.user);
-        if (data.user.status === 'blocked') {
-          setIsBlocked(true);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching user status:', error);
-      toast.error('Failed to fetch user status. Please try again later.');
-    }
-  };
+  // const checkUserStatus = async () => {
+  //   try {
+  //     const { data } = await axios.get("/api/v1/usersLists/current-user");
+  //     if (data.success) {
+  //       setUser(data.user);
+  //       if (data.user.status === 'blocked') {
+  //         setIsBlocked(true);
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error('Error fetching user status:', error);
+  //     toast.error('Failed to fetch user status. Please try again later.');
+  //   }
+  // };
   const mobileSearchStyle = {
     position: 'sticky',
     top: 0,
@@ -233,8 +234,12 @@ const HomePage = () => {
 
   return (
     <Layout title={"All Products - Best offers"}>
-    <div style={mobileSearchStyle}>
-  <SearchInput style={{ paddingTop: '1000px' }} />
+    <div style={{mobileSearchStyle,padding:'80px 0px'}}>
+    {isMobile && (
+        <div style={{ padding: "20px 0px" }}>
+          <SearchInput style={{ paddingTop: '1000px' }} />
+        </div>
+      )}
 </div>
 
       <div className="banner-container" style={{ height: '300px', overflow: 'hidden', marginTop: isMobile ? '10px' : '0' }}>
@@ -278,41 +283,7 @@ const HomePage = () => {
       <div className="container mt-4">
         <h1 className="text-center mb-4">All Products</h1>
         <div className="row">
-          {products?.map((p) => (
-            <div className="col-md-4 col-sm-6 mb-3" key={p._id}>
-              <div 
-                className="card product-card h-100" 
-                style={{ cursor: 'pointer' }} 
-                onClick={() => navigate(`/product/${p.slug}`)}
-              >
-                <img
-                  src={`/api/v1/product/product-photo/${p._id}`}
-                  className="card-img-top product-image"
-                  alt={p.name}
-                  style={{ height: '200px', objectFit: 'contain' }}
-                />
-                <div className="card-body d-flex flex-column">
-                  <h5 className="card-title product-name">{p.name}</h5>
-                  <div className="mt-auto">
-                    <h5 className="card-title product-price">
-                      {p.price?.toLocaleString("en-US", {
-                        style: "currency",
-                        currency: "INR",
-                      }) || "Price not available"}
-                    </h5>
-                    {p.mrp && p.mrp > p.price && (
-                      <h6 className="original-price product-original-price">
-                        {p.mrp.toLocaleString("en-US", {
-                          style: "currency",
-                          currency: "INR",
-                        })}
-                      </h6>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
+          {products?.map((p) => (    <ProductCard key={p._id} product={p} />  ))}
         </div>
         
         <div className="m-2 p-3">
@@ -338,57 +309,28 @@ const HomePage = () => {
       </div>
 
       <div className="container mt-5">
-        <h2 className="text-center mb-4">Products For You</h2>
-        <div className="row">
-          {productsForYou.slice(0, 6).map((item) => (
-            <div className="col-md-4 col-sm-6 mb-3" key={item._id}>
-              <div 
-                className="card h-100" 
-                style={{ cursor: 'pointer' }} 
-                onClick={() => navigate(`/product/${item.productId?.slug}`)}
-              >
-                <img
-                  src={`/api/v1/product/product-photo/${item.productId?._id}`}
-                  className="card-img-top"
-                  alt={item.productId?.name || "Product"}
-                  style={{ height: '200px', objectFit: 'contain' }}
-                />
-                <div className="card-body d-flex flex-column">
-                  <h5 className="card-title">{item.productId?.name || "Product Name"}</h5>
-                  <div className="mt-auto">
-                    <h5 className="card-price">
-                      {item.productId?.price
-                        ? item.productId.price.toLocaleString("en-US", {
-                            style: "currency",
-                            currency: "INR",
-                          })
-                        : "Price not available"}
-                    </h5>
-                    {item.productId?.hsn && item.productId?.hsn > item.productId?.hsn && (
-                      <h6 className="original-price">
-                        {item.productId.hsn.toLocaleString("en-US", {
-                          style: "currency",
-                          currency: "INR",
-                        })}
-                      </h6>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-        {productsForYou.length > 10 && (
-          <div className="text-center mt-3">
-            {/* <button 
-              className="btn btn-primary"
-              onClick={() => navigate('/products-for-you')}
-            >
-              View More
-            </button> */}
-          </div>
-        )}
-      </div>
+  <h2 className="text-center mb-4">Products For You</h2>
+  <div className="row">
+    {productsForYou
+      .slice(0, 6)
+      .filter(item => item.productId) // Ensure productId exists
+      .map(item => (
+        <ProductCard key={item.productId?._id} product={item.productId} /> // Access productId safely
+      ))}
+  </div>
+  {productsForYou.length > 10 && (
+    <div className="text-center mt-3">
+      {/* Optional button for viewing more products */}
+      {/* <button 
+        className="btn btn-primary"
+        onClick={() => navigate('/products-for-you')}
+      >
+        View More
+      </button> */}
+    </div>
+  )}
+</div>
+
     </Layout>
   );
 };

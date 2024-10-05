@@ -191,6 +191,12 @@ export const getSingleProductController = async (req, res) => {
 export const productPhotoController = async (req, res) => {
   try {
     const product = await productModel.findById(req.params.pid).select("photo");
+    if (product == null) {
+      return res.status(404).send({
+        success: false,
+        message: "Product not found",
+      });
+    }
     if (product.photo.data) {
       res.set("Content-type", product.photo.contentType);
       return res.status(200).send(product.photo.data);
@@ -199,7 +205,7 @@ export const productPhotoController = async (req, res) => {
     console.log(error);
     res.status(500).send({
       success: false,
-      message: "Erorr while getting photo",
+      message: "Error while getting photo",
       error,
     });
   }
@@ -491,135 +497,59 @@ export const productSubcategoryController = async (req, res) => {
   }
 };
 
-// export const braintreeTokenController = async (req, res) => {
-//   try {
-//     gateway.clientToken.generate({}, function (err, response) {
-//       if (err) {
-//         res.status(500).send(err);
-//       } else {
-//         res.send(response);
-//       }
-//     });
-//   } catch (error) {
-//     console.log(error);
-//   }
-// };
 
-// // //payment
-// export const brainTreePaymentController = async (req, res) => {
-//   try {
-//     const { nonce, cart } = req.body;
-//     let total = 0;
-//     cart.map((i) => {
-//       total += i.price;
-//     });
-//     let newTransaction = gateway.transaction.sale(
-//       {
-//         amount: total,
-//         paymentMethodNonce: nonce,
-//         options: {
-//           submitForSettlement: true,
-//         },
-//       },
-//       function (error, result) {
-//         if (result) {
-//           const order = new orderModel({
-//             products: cart,
-//             payment: result,
-//             buyer: req.user._id,
-//           }).save();
-//           res.json({ ok: true });
-//         } else {
-//           res.status(500).send(error);
-//         }
-//       }
-//     );
-//   } catch (error) {
-//     console.log(error);
-//   }
-// };
 export const processPaymentController = async (req, res) => {
   try {
-    const { cart, paymentMethod, nonce } = req.body; // Get nonce for Braintree from the request
-    let total = 0;
+    const { products, paymentMethod, amount } = req.body;
+    
+    if (!products || !Array.isArray(products) || products.length === 0 || !paymentMethod) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid request body. Missing products or paymentMethod." 
+      });
+    }
 
-    // Calculate the total price of the cart
-    cart.forEach((item) => {
-      total += item.price;
+    // Create the order
+    const order = new orderModel({
+      products: products.map(item => ({
+        product: item.product,
+        quantity: item.quantity,
+        price: item.price
+      })),
+      payment: {
+        paymentMethod,
+        transactionId: `${paymentMethod}-${Date.now()}`,
+        status: paymentMethod === "COD" ? "Cash on Delivery" : "Pending",
+      },
+      buyer: req.user._id, // Assuming you have user authentication middleware
+      amount: amount,
+      status: "Not Processed",
     });
 
-    let order;
+    await order.save();
 
-    // Handle Cash on Delivery (COD) payment method
-    if (paymentMethod === "COD") {
-      const transactionId = `COD-${uuidv4()}`; // Generate a unique transaction ID for COD
-
-      // Create the order in the database
-      order = new orderModel({
-        products: cart,
-        payment: {
-          paymentMethod: "COD",
-          transactionId: transactionId,
-          status: "Pending",
-        },
-        buyer: req.user._id,
-      });
-
-      await order.save();
-      return res.json({ success: true, message: "COD order placed successfully", order });
-
-    } 
-    // Handle Braintree payment method
-    else if (paymentMethod === "Braintree") {
-      let result = await gateway.transaction.sale({
-        amount: total.toFixed(2), // Ensure the total is formatted as a string with two decimal places
-        paymentMethodNonce: nonce,
-        options: {
-          submitForSettlement: true,
-        },
-      });
-
-      // Check if the Braintree transaction was successful
-      if (result.success) {
-        order = new orderModel({
-          products: cart,
-          payment: {
-            paymentMethod: "Braintree",
-            transactionId: result.transaction.id,
-            status: "Completed",
-          },
-          buyer: req.user._id,
-        });
-
-        await order.save();
-        return res.json({ success: true, order });
-      } else {
-        return res.status(500).json({ success: false, message: result.message });
-      }
-    } 
-    // Handle invalid payment method
-    else {
-      return res.status(400).json({ success: false, message: "Invalid payment method" });
-    }
+    res.json({ success: true, message: "Order placed successfully", order });
   } catch (error) {
-    console.error("Unexpected error in payment processing:", error);
-    return res.status(500).json({ 
-      success: false, 
-      message: "Unexpected error in payment processing", 
-      error: error.message 
+    console.error("Error in processPaymentController:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error in payment processing",
+      error: error.message
     });
   }
 };
 
-
-
 export const getProductPhoto = async (req, res) => {
   try {
     const product = await productModel.findById(req.params.pid).select("photo");
-    if (product.photo.data) {
-      res.set("Content-type", product.photo.contentType);
-      return res.status(200).send(product.photo.data);
+    if (product == null || product.photo == null) {
+      return res.status(404).send({
+        success: false,
+        message: "Product photo not found",
+      });
     }
+    res.set("Content-type", product.photo.contentType);
+    return res.status(200).send(product.photo.data);
   } catch (error) {
     console.log(error);
     res.status(500).send({

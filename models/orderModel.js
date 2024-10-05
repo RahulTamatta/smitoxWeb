@@ -8,8 +8,12 @@ const orderSchema = new mongoose.Schema(
     },
     products: [
       {
-        type: mongoose.ObjectId,
-        ref: "Product",
+        product: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Product",
+        },
+        quantity: Number,
+        price: Number
       },
     ],
     payment: {
@@ -21,19 +25,18 @@ const orderSchema = new mongoose.Schema(
       transactionId: String,
       status: {
         type: String,
-        enum: ["Pending", "Completed"],
+        enum: ["Pending", "Completed", "Cash on Delivery"],
         default: "Pending",
       },
-  
     },
     amount: {
       type: Number,
-      default: 0,
+      required: true,
     },
     status: {
       type: String,
-      default: "Pending",
-      enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"],
+      default: "Not Processed",
+      enum: ["Not Processed", "Processing", "Shipped", "Delivered", "Cancelled"],
     },
     deliveryCharges: {
       type: Number,

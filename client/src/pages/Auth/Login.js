@@ -38,7 +38,7 @@ const Login = () => {
         phoneNumber,
         otp,
       });
-  
+
       if (res && res.data.success) {
         toast.success(res.data.message);
         setAuth({
@@ -57,9 +57,13 @@ const Login = () => {
         }
       }
     } catch (error) {
-      navigate("/register", { state: { phoneNumber } });
       console.log(error);
-      toast.error("Something went wrong");
+      if (error.response && error.response.status === 404) {
+        // User not found, navigate to registration
+        navigate("/register", { state: { phoneNumber } });
+      } else {
+        toast.error("Something went wrong");
+      }
     }
   };
   
@@ -99,17 +103,7 @@ const Login = () => {
               />
             </div>
           )}
-          <div className="mb-3">
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => {
-                navigate("/forgot-password");
-              }}
-            >
-              Forgot Password
-            </button>
-          </div>
+          {/* Removed Forgot Password button */}
           <button type="submit" className="btn btn-primary">
             {showOtpInput ? "VERIFY OTP & LOGIN" : "SEND OTP"}
           </button>

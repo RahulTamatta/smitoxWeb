@@ -56,7 +56,7 @@ const Orders = () => {
                         <td>{o?.status}</td>
                         <td>{o?.buyer?.name}</td>
                         <td>{moment(o?.createdAt).fromNow()}</td>
-                        <td>{o?.payment.success ? "Success" : "Failed"}</td>
+                        <td>{o?.payment?.success ? "Success" : "Failed"}</td>
                         <td>{o?.products?.length}</td>
                       </tr>
                     </tbody>
@@ -67,6 +67,7 @@ const Orders = () => {
                         <div className="col-md-4">
                           <img
                             src={`/api/v1/product/product-photo/${p._id}`}
+                            
                             className="card-img-top"
                             alt={p.name}
                             width="100px"
@@ -75,7 +76,7 @@ const Orders = () => {
                         </div>
                         <div className="col-md-8">
                           <p>{p.name}</p>
-                          <p>{p.description.substring(0, 30)}</p>
+                          <p>{p.description ? p.description.substring(0, 30) : 'No description available'}</p>
                           <p>Price : {p.price}</p>
                         </div>
                       </div>

@@ -5,7 +5,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useCart } from "../context/cart";
 import { useAuth } from "../context/auth";
 import toast from "react-hot-toast";
-
+import ProductCard from './ProductCard';
 const ProductDetails = () => {
   const params = useParams();
   const navigate = useNavigate();
@@ -170,7 +170,8 @@ const ProductDetails = () => {
 
     try {
       const { data } = await axios.get(`/api/v1/carts/users/${auth.user._id}/wishlist/check/${productId}`);
-      setIsInWishlist(data.status === "success");
+      setIsInWishlist(data.exists);
+      console.log("SetWIshlist",data.exists);
     } catch (error) {
       console.error(error);
       setIsInWishlist(false);
@@ -302,17 +303,20 @@ const ProductDetails = () => {
     justifyContent: 'space-around',
   };
 
-
   return (
     <Layout>
       <div style={containerStyle}>
         <div style={productDetailStyle}>
           <div style={imageStyle}>
-            <img
-              src={`/api/v1/product/product-photo/${product._id}`}
-              alt={product.name}
-              style={{ width: '100%', height: 'auto', borderRadius: '8px' }}
-            />
+            {product._id ? (
+              <img
+                src={`/api/v1/product/product-photo/${product._id}`}
+                alt={product.name}
+                style={{ width: '100%', height: 'auto', borderRadius: '8px' }}
+              />
+            ) : (
+              <p>Loading product...</p>
+            )}
             <div>
               <h3 style={{ ...headingStyle, fontSize: '20px', marginTop: '20px' }}>Bulk Pricing</h3>
               <table style={tableStyle}>
@@ -339,8 +343,8 @@ const ProductDetails = () => {
                           {isSelected ? `₹${totalPrice.toFixed(2)}` : '-'}
                         </td>
                         <td style={thTdStyle}>
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             checked={isSelected}
                             readOnly
                           />
@@ -360,7 +364,7 @@ const ProductDetails = () => {
             </div>
             <p>Total Price: ₹{totalPrice.toFixed(2)}</p>
             <p style={descriptionStyle}>{product.description}</p>
-      
+  
             <div style={quantitySelectorStyle}>
               <button onClick={() => handleQuantityChange(false)} style={buttonStyle}>-</button>
               <input
@@ -375,8 +379,8 @@ const ProductDetails = () => {
               <p>Your Pincode: {auth.user.pincode}</p>
             )}
             <p>Delivery {isPincodeAvailable ? 'Available' : 'Not Available'} for your pincode</p>
-            <button 
-              onClick={addToCart} 
+            <button
+              onClick={addToCart}
               disabled={!isPincodeAvailable || !selectedBulk}
               style={{
                 ...addToCartButtonStyle,
@@ -386,8 +390,8 @@ const ProductDetails = () => {
             >
               ADD TO CART
             </button>
-
-            <button 
+  
+            <button
               onClick={toggleWishlist}
               style={{
                 ...buttonStyle,
@@ -406,24 +410,15 @@ const ProductDetails = () => {
           {productsForYou
             .filter(item => item.categoryId?._id === product.category?._id)
             .map((item) => (
-              <div 
-                key={item._id} 
-                style={productCardStyle}
+              <ProductCard 
+                key={item._id}
+                product={item.productId}
                 onClick={() => navigate(`/product/${item.productId?.slug}`)}
-              >
-                <img
-                  src={`/api/v1/product/product-photo/${item.productId?._id}`}
-                  alt={item.productId?.name || "Product"}
-                  style={{ width: '100%', height: 'auto', borderRadius: '4px' }}
-                />
-                <h3 style={{ fontSize: '16px', marginTop: '10px' }}>{item.productId?.name || "Product Name"}</h3>
-                <p style={{ fontSize: '14px', color: '#e47911', fontWeight: 'bold' }}>₹{item.productId?.price || "Price not available"}</p>
-              </div>
+              />
             ))}
         </div>
       </div>
     </Layout>
   );
-};
-
+}
 export default ProductDetails;

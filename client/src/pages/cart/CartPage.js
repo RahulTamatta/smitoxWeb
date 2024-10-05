@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Layout from "../../components/Layout/Layout";
+import { useCart } from "../../context/cart";
 import { useAuth } from "../../context/auth";
 import { useNavigate } from "react-router-dom";
 import DropIn from "braintree-web-drop-in-react";
@@ -10,7 +11,7 @@ import "./cartPage.css";
 
 const CartPage = () => {
   const [auth] = useAuth();
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useCart();
   const [clientToken, setClientToken] = useState("");
   const [instance, setInstance] = useState("");
   const [loading, setLoading] = useState(false);
@@ -23,17 +24,18 @@ const CartPage = () => {
     if (auth?.token) {
       getCart();
       fetchMinimumOrder();
+      getToken();
     }
   }, [auth?.token]);
-  const isAuthenticated = auth?.token && auth?.user?._id;
 
   const getCart = async () => {
     try {
       const { data } = await axios.get(`/api/v1/carts/users/${auth.user._id}/cart`);
-      setCart(data.cart);
+      setCart(data.cart || []); // Ensure cart is always an array
     } catch (error) {
       console.log(error);
       toast.error("Error fetching cart");
+      setCart([]); // Set cart to empty array on error
     }
   };
 
@@ -50,25 +52,36 @@ const CartPage = () => {
     }
   };
 
+  const getToken = async () => {
+    try {
+      const { data } = await axios.get("/api/v1/product/braintree/token");
+      setClientToken(data?.clientToken);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const totalPrice = () => {
     try {
       let total = 0;
-      cart?.forEach((item) => {
-        const { product, quantity } = item;
-        let itemPrice = product.price;
+      if (Array.isArray(cart)) {
+        cart.forEach((item) => {
+          const { product, quantity } = item;
+          let itemPrice = product.price;
 
-        // Check for bulk pricing
-        if (product.bulkProducts && product.bulkProducts.length > 0) {
-          const bulkPrice = product.bulkProducts.find(
-            bp => quantity >= bp.minimum && quantity <= bp.maximum
-          );
-          if (bulkPrice) {
-            itemPrice = bulkPrice.selling_price_set;
+          // Check for bulk pricing
+          if (product.bulkProducts && product.bulkProducts.length > 0) {
+            const bulkPrice = product.bulkProducts.find(
+              bp => quantity >= bp.minimum && quantity <= bp.maximum
+            );
+            if (bulkPrice) {
+              itemPrice = bulkPrice.selling_price_set;
+            }
           }
-        }
 
-        total += itemPrice * quantity;
-      });
+          total += itemPrice * quantity;
+        });
+      }
       return total;
     } catch (error) {
       console.log(error);
@@ -87,20 +100,6 @@ const CartPage = () => {
     }
   };
 
-  const getToken = async () => {
-    try {
-      const { data } = await axios.get("/api/v1/product/braintree/token");
-      setClientToken(data?.clientToken);
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  useEffect(() => {
-    getToken();
-  }, [auth?.token]);
-
-
   const clearCart = async () => {
     try {
       if (!auth?.user?._id) return;
@@ -118,40 +117,50 @@ const CartPage = () => {
       toast.error("Error clearing cart");
     }
   };
+
   const handlePayment = async () => {
     try {
+      setLoading(true);
       const total = totalPrice();
+      
       if (total < minimumOrder) {
         toast.error(`Minimum order amount is ${minimumOrderCurrency} ${minimumOrder}`);
+        setLoading(false);
         return;
       }
-  
-      setLoading(true);
-      
-      // Hardcode the payment method to "COD"
-      const paymentMethod = "COD";
-  
-      const payload = { cart, paymentMethod };
-  
+
+      let payload = {
+        products: Array.isArray(cart) ? cart.map(item => ({
+          product: item.product._id,
+          quantity: item.quantity,
+          price: item.product.price
+        })) : [],
+        paymentMethod,
+        amount: total
+      };
+
+      if (paymentMethod === "Braintree") {
+        const { nonce } = await instance.requestPaymentMethod();
+        payload.nonce = nonce;
+      }
+
       const { data } = await axios.post("/api/v1/product/process-payment", payload);
-      setLoading(false);
+      
       if (data.success) {
-        // Clear the cart on the server and update local state
         await clearCart();
-        
-        // Navigate to the orders page
         navigate("/dashboard/user/orders");
         toast.success("Order Placed Successfully");
       } else {
-        toast.error(data.message);
+        toast.error(data.message || "Failed to place order");
       }
     } catch (error) {
       console.log(error);
-      toast.error("Something went wrong");
+      toast.error(error.response?.data?.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
   };
+
   const handleProductClick = (slug) => {
     navigate(`/product/${slug}`);
   };
@@ -162,11 +171,11 @@ const CartPage = () => {
         <div className="row">
           <div className="col-12">
             <h1 className="text-center bg-light p-2 mb-1">
-              {!isAuthenticated ? "Hello Guest" : `Hello ${auth?.user?.name}`}
+              {!auth?.user ? "Hello Guest" : `Hello ${auth?.user?.name}`}
               <p className="text-center">
                 {cart?.length
                   ? `You Have ${cart.length} items in your cart ${
-                      isAuthenticated ? "" : "please login to checkout!"
+                      auth?.token ? "" : "please login to checkout!"
                     }`
                   : " Your Cart Is Empty"}
               </p>
@@ -175,8 +184,10 @@ const CartPage = () => {
         </div>
         <div className="row">
           <div className="col-md-7 col-12">
-            {cart?.map((p) => (
+            {Array.isArray(cart) && cart.map((p) => (
+              
               p?.product && (
+             
                 <div 
                   className="row card flex-row my-3" 
                   key={p._id}
@@ -194,14 +205,14 @@ const CartPage = () => {
                   </div>
                   <div className="col-md-4 col-12">
                     <p>{p.product.name}</p>
+                    <p>{p.product.description?.substring(0, 30) || 'No description available'}</p>
                     <p>
-                      Price: ₹
+                      Price: {minimumOrderCurrency}{" "}
                       {p.product.bulkProducts?.length > 0
                         ? p.product.bulkProducts.find(
                             bp => p.quantity >= bp.minimum && p.quantity <= bp.maximum
                           )?.selling_price_set || p.product.price
-                        : p.product.price} x
-                        {p.quantity} = {((p.product.bulkProducts?.length > 0
+                        : p.product.price} x {p.quantity} = {((p.product.bulkProducts?.length > 0
                         ? p.product.bulkProducts.find(
                             bp => p.quantity >= bp.minimum && p.quantity <= bp.maximum
                           )?.selling_price_set || p.product.price
@@ -221,7 +232,7 @@ const CartPage = () => {
               )
             ))}
           </div>
-          <div className="col-md-5 col-12">
+          <div className="col-md-5 col-12 cart-summary">
             <h2>Cart Summary</h2>
             <p>Total | Checkout | Payment</p>
             <hr />
@@ -239,19 +250,21 @@ const CartPage = () => {
               </p>
             )}
             {auth?.user?.address ? (
-              <div className="mb-3">
-                <h4>Current Address</h4>
-                <h5>{auth.user.address}</h5>
-                <button
-                  className="btn btn-outline-warning"
-                  onClick={() => navigate("/dashboard/user/profile")}
-                >
-                  Update Address
-                </button>
-              </div>
+              <>
+                <div className="mb-3">
+                  <h4>Current Address</h4>
+                  <h5>{auth?.user?.address}</h5>
+                  <button
+                    className="btn btn-outline-warning"
+                    onClick={() => navigate("/dashboard/user/profile")}
+                  >
+                    Update Address
+                  </button>
+                </div>
+              </>
             ) : (
               <div className="mb-3">
-                {isAuthenticated ? (
+                {auth?.token ? (
                   <button
                     className="btn btn-outline-warning"
                     onClick={() => navigate("/dashboard/user/profile")}
@@ -273,28 +286,38 @@ const CartPage = () => {
               </div>
             )}
             <div className="mt-2">
-              {!isAuthenticated || !cart?.length ? (
+              {!auth?.token || !cart?.length ? (
                 ""
               ) : (
                 <>
-                  <h4>Payment Method: {paymentMethod}</h4>
+                  <div className="mb-3">
+                    <h4>Select Payment Method</h4>
+                    <select
+                      className="form-select"
+                      value={paymentMethod}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                    >
+                      <option value="Braintree">Online Payment</option>
+                      <option value="COD">Cash on Delivery</option>
+                    </select>
+                  </div>
+                  {paymentMethod === "Braintree" && (
+                    <DropIn
+                      options={{
+                        authorization: clientToken,
+                        paypal: {
+                          flow: "vault",
+                        },
+                      }}
+                      onInstance={(instance) => setInstance(instance)}
+                    />
+                  )}
                   <button
                     className="btn btn-primary"
                     onClick={handlePayment}
-                    disabled={
-                      loading || 
-                      !auth?.user?.address || 
-                      totalPrice() < minimumOrder
-                    }
+                    disabled={loading || (paymentMethod === "Braintree" && !instance) || !auth?.user?.address}
                   >
-                    {loading ? "Processing..." : "Place Order"}
-                  </button>
-                  <button
-                    className="btn btn-danger ml-2"
-                    onClick={clearCart}
-                    disabled={loading}
-                  >
-                    Clear Cart
+                    {loading ? "Processing ...." : `Place Order (${paymentMethod})`}
                   </button>
                 </>
               )}
